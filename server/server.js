@@ -12,48 +12,54 @@ const httpServer = http.createServer((req, res) => {
 
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:3000', 'https://chat-roulette.vercel.app'],
+    origin: [
+      'http://localhost:3000',
+      'https://chat-roulette.vercel.app',
+      'https://chat-roulette-mh6k9rxly-mike242424s-projects.vercel.app',
+    ],
     methods: ['GET', 'POST'],
     credentials: true,
   },
 });
 
-const waitingQueue = [];
+let waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
+  console.log(`${socket.id} connected`);
+
   if (waitingQueue.length > 0) {
     const partnerSocket = waitingQueue.shift();
     pairedUsers.set(socket.id, partnerSocket.id);
     pairedUsers.set(partnerSocket.id, socket.id);
 
+    console.log(`Paired ${socket.id} with ${partnerSocket.id}`);
+
     socket.emit('paired', { partnerId: partnerSocket.id });
     partnerSocket.emit('paired', { partnerId: socket.id });
   } else {
     waitingQueue.push(socket);
+    console.log(`${socket.id} is waiting for a partner`);
     socket.emit('waiting');
   }
 
   socket.on('offer', ({ to, sdp }) => {
+    console.log(`Offer received from ${socket.id} to ${to}`);
     io.to(to).emit('offer', { from: socket.id, sdp });
   });
 
   socket.on('answer', ({ to, sdp }) => {
+    console.log(`Answer received from ${socket.id} to ${to}`);
     io.to(to).emit('answer', { from: socket.id, sdp });
   });
 
   socket.on('ice-candidate', ({ to, candidate }) => {
+    console.log(`ICE candidate received from ${socket.id} to ${to}`);
     io.to(to).emit('ice-candidate', { from: socket.id, candidate });
   });
 
-  socket.on('message', ({ to, text }) => {
-    const partnerSocket = io.sockets.sockets.get(to);
-    if (partnerSocket) {
-      partnerSocket.emit('message', { from: socket.id, text });
-    }
-  });
-
   socket.on('disconnect', () => {
+    console.log(`${socket.id} disconnected`);
     const partnerId = pairedUsers.get(socket.id);
     pairedUsers.delete(socket.id);
 
@@ -63,11 +69,11 @@ io.on('connection', (socket) => {
       if (partnerSocket) {
         waitingQueue.push(partnerSocket);
         partnerSocket.emit('waiting');
+        console.log(`Re-added ${partnerId} to waiting queue`);
       }
     }
 
-    const index = waitingQueue.indexOf(socket);
-    if (index !== -1) waitingQueue.splice(index, 1);
+    waitingQueue = waitingQueue.filter((s) => s.id !== socket.id);
   });
 });
 

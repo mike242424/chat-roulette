@@ -20,7 +20,7 @@ const ChatRoulette = () => {
   const peerRef = useRef<Peer.Instance | null>(null);
 
   useEffect(() => {
-    const socket = io('https://chat-roulette.onrender.com');
+    const socket = io('https://chat-roulette.onrender.com'); // Update to your backend URL
     socketRef.current = socket;
 
     navigator.mediaDevices
@@ -48,9 +48,10 @@ const ChatRoulette = () => {
 
           peer.on('signal', (data) => {
             console.log('Sending signaling data:', data);
-            if (data.type === 'offer' || data.type === 'answer') {
-              socket.emit('offer', { to: partnerId, sdp: data });
-            }
+            socket.emit(data.type === 'offer' ? 'offer' : 'answer', {
+              to: partnerId,
+              sdp: data,
+            });
           });
 
           peer.on('stream', (remoteStream) => {
