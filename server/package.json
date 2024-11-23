@@ -3,15 +3,16 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm install",
-    "start": "node server/server.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Socket.IO signaling server",
   "dependencies": {
     "socket.io": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=16"
   }
 }
