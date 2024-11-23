@@ -1,8 +1,12 @@
 import { Server } from 'socket.io';
+import http from 'http';
 
-const io = new Server(3001, {
+const PORT = process.env.PORT || 3001;
+
+const httpServer = http.createServer();
+const io = new Server(httpServer, {
   cors: {
-    origin: '*',
+    origin: ['http://localhost:3000', 'https://your-frontend.vercel.app'],
     methods: ['GET', 'POST'],
   },
 });
@@ -11,26 +15,30 @@ const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
-  // Check if there's someone waiting in the queue
   if (waitingQueue.length > 0) {
     const partnerSocket = waitingQueue.shift();
-
-    // Notify both users they are paired
-    socket.emit('paired', { partnerId: partnerSocket.id });
-    partnerSocket.emit('paired', { partnerId: socket.id });
-
-    // Track the pairing
     pairedUsers.set(socket.id, partnerSocket.id);
     pairedUsers.set(partnerSocket.id, socket.id);
-  } else {
-    // Add the user to the waiting queue if no one is available
-    waitingQueue.push(socket);
 
-    // Notify the user they are waiting
+    socket.emit('paired', { partnerId: partnerSocket.id });
+    partnerSocket.emit('paired', { partnerId: socket.id });
+  } else {
+    waitingQueue.push(socket);
     socket.emit('waiting');
   }
 
-  // Listen for messages
+  socket.on('offer', ({ to, sdp }) => {
+    io.to(to).emit('offer', { from: socket.id, sdp });
+  });
+
+  socket.on('answer', ({ to, sdp }) => {
+    io.to(to).emit('answer', { from: socket.id, sdp });
+  });
+
+  socket.on('ice-candidate', ({ to, candidate }) => {
+    io.to(to).emit('ice-candidate', { from: socket.id, candidate });
+  });
+
   socket.on('message', ({ to, text }) => {
     const partnerSocket = io.sockets.sockets.get(to);
     if (partnerSocket) {
@@ -38,41 +46,24 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle disconnection of paired or waiting users
   socket.on('disconnect', () => {
-    // Handle paired users
     const partnerId = pairedUsers.get(socket.id);
-    if (partnerId) {
-      const partnerSocket = io.sockets.sockets.get(partnerId);
-      pairedUsers.delete(socket.id);
-      pairedUsers.delete(partnerId);
+    pairedUsers.delete(socket.id);
 
-      // Add the partner back to the waiting queue if they are still connected
+    if (partnerId) {
+      pairedUsers.delete(partnerId);
+      const partnerSocket = io.sockets.sockets.get(partnerId);
       if (partnerSocket) {
         waitingQueue.push(partnerSocket);
         partnerSocket.emit('waiting');
-        pairNextUser();
       }
     }
 
-    // Remove disconnected user from waiting queue
     const index = waitingQueue.indexOf(socket);
-    if (index !== -1) {
-      waitingQueue.splice(index, 1);
-    }
+    if (index !== -1) waitingQueue.splice(index, 1);
   });
+});
 
-  // Helper function to pair the next user
-  const pairNextUser = () => {
-    if (waitingQueue.length >= 2) {
-      const user1 = waitingQueue.shift();
-      const user2 = waitingQueue.shift();
-
-      user1.emit('paired', { partnerId: user2.id });
-      user2.emit('paired', { partnerId: user1.id });
-
-      pairedUsers.set(user1.id, user2.id);
-      pairedUsers.set(user2.id, user1.id);
-    }
-  };
+httpServer.listen(PORT, () => {
+  console.log(`Signaling server listening on port ${PORT}`);
 });

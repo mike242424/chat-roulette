@@ -170,3 +170,33 @@ body {
   overflow-y: auto;
   box-shadow: 0 0 10px rgba(255, 165, 0, 0.7);
 }
+
+.video-container {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.video {
+  width: 45%;
+  height: auto;
+  border: 2px solid rgba(255, 165, 0, 0.7);
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(255, 165, 0, 0.7);
+}
+
+/* Status Indicator */
+.status-indicator {
+  font-size: 1.2rem;
+  color: rgba(255, 165, 0, 0.8);
+  margin-bottom: 15px;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 10px #ffa500, 0 0 20px #ff4500, 0 0 30px #ffa500;
+  }
+  to {
+    text-shadow: 0 0 20px #ffa500, 0 0 40px #ff4500, 0 0 60px #ffa500;
+  }
+}

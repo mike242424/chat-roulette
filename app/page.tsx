@@ -1,52 +1,102 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import Peer from 'simple-peer';
 
-interface Message {
-  from: string;
-  text: string;
-}
+const ChatRoulette = () => {
+  interface Message {
+    from: string;
+    text: string;
+  }
 
-const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState('Connecting...');
-  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [partnerId, setPartnerId] = useState(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const socketRef = useRef<Socket | null>(null);
+  const peerRef = useRef<Peer.Instance | null>(null);
 
   useEffect(() => {
     const socket = io('http://localhost:3001');
     socketRef.current = socket;
 
-    socket.on('connect', () => {
-      setStatus('Connected');
-    });
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
 
-    // Handle pairing
-    socket.on('paired', ({ partnerId }) => {
-      setStatus(`Paired with user: ${partnerId}`);
-      setPartnerId(partnerId);
-      setMessages([]);
-    });
+        socket.on('connect', () => setStatus('Connected to server'));
 
-    // Handle waiting
-    socket.on('waiting', () => {
-      setStatus('Waiting to be connected...');
-      setPartnerId(null);
-    });
+        socket.on('paired', ({ partnerId }) => {
+          setStatus(`Paired with user: ${partnerId}`);
+          setPartnerId(partnerId);
 
-    // Listen for incoming messages
-    socket.on('message', (message: Message) => {
-      setMessages((prev) => [...prev, message]);
-    });
+          const peer = new Peer({
+            initiator: true,
+            trickle: false,
+            stream,
+          });
 
-    // Handle disconnection
-    socket.on('disconnect', () => {
-      setStatus('Disconnected');
-    });
+          peer.on('signal', (data) => {
+            socket.emit('offer', { to: partnerId, sdp: data });
+          });
+
+          peer.on('stream', (remoteStream) => {
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = remoteStream;
+            }
+          });
+
+          peerRef.current = peer;
+
+          socket.on('offer', ({ from, sdp }) => {
+            const answeringPeer = new Peer({
+              initiator: false,
+              trickle: false,
+              stream,
+            });
+
+            answeringPeer.signal(sdp);
+
+            answeringPeer.on('signal', (data) => {
+              socket.emit('answer', { to: from, sdp: data });
+            });
+
+            answeringPeer.on('stream', (remoteStream) => {
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = remoteStream;
+              }
+            });
+
+            peerRef.current = answeringPeer;
+          });
+
+          socket.on('answer', (sdp) => {
+            peer.signal(sdp);
+          });
+
+          socket.on('ice-candidate', (candidate) => {
+            peer.signal(candidate);
+          });
+        });
+
+        socket.on('waiting', () => {
+          setStatus('Waiting for a partner...');
+          setPartnerId(null);
+        });
+
+        socket.on('message', (message) => {
+          setMessages((prev) => [...prev, message]);
+        });
+      });
 
     return () => {
+      if (peerRef.current) peerRef.current.destroy();
       socket.disconnect();
     };
   }, []);
@@ -60,52 +110,37 @@ const ChatPage = () => {
     }
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && input.trim() && partnerId) {
-      sendMessage();
-    }
-  };
-
   return (
     <div className="chat-container">
       <h1 className="title">Chat Roulette</h1>
-      <p className="status-indicator">Status: {status}</p>
+      <p className="status-indicator">{status}</p>
+      <div className="video-container">
+        <video ref={localVideoRef} autoPlay muted className="video" />
+        <video ref={remoteVideoRef} autoPlay className="video" />
+      </div>
       <div className="chat-box">
-        {messages.length > 0 ? (
-          messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`chat-message ${
-                msg.from === 'You' ? 'chat-message-right' : 'chat-message-left'
-              }`}
-            >
-              <strong>{msg.from === 'You' ? 'You' : msg.from}: </strong>
-              {msg.text}
-            </div>
-          ))
-        ) : partnerId ? (
-          <div className="empty-chat">No messages yet. Say hi!</div>
-        ) : (
-          <div className="empty-chat">
-            No messages yet. Waiting to be connected...
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`chat-message ${
+              msg.from === 'You' ? 'chat-message-right' : 'chat-message-left'
+            }`}
+          >
+            <strong>{msg.from === 'You' ? 'You' : 'Partner'}:</strong>{' '}
+            {msg.text}
           </div>
-        )}
+        ))}
       </div>
       <div className="chat-input">
         <input
-          className="neon-input"
           type="text"
+          className="neon-input"
+          placeholder="Type a message..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your message..."
-          disabled={!partnerId}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
         />
-        <button
-          className="neon-button"
-          onClick={sendMessage}
-          disabled={!input || !partnerId}
-        >
+        <button className="neon-button" onClick={sendMessage}>
           Send
         </button>
       </div>
@@ -113,4 +148,4 @@ const ChatPage = () => {
   );
 };
 
-export default ChatPage;
+export default ChatRoulette;
