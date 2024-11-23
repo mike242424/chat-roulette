@@ -13,14 +13,14 @@ const ChatRoulette = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState('Connecting...');
-  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [partnerId, setPartnerId] = useState(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const socketRef = useRef<Socket | null>(null);
   const peerRef = useRef<Peer.Instance | null>(null);
 
   useEffect(() => {
-    const socket = io('https://chat-roulette.onrender.com'); // Update to your backend URL
+    const socket = io('https://chat-roulette.onrender.com');
     socketRef.current = socket;
 
     navigator.mediaDevices
@@ -30,13 +30,9 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        socket.on('connect', () => {
-          console.log('Connected to signaling server');
-          setStatus('Connected to server');
-        });
+        socket.on('connect', () => setStatus('Connected to server'));
 
         socket.on('paired', ({ partnerId }) => {
-          console.log(`Paired with user: ${partnerId}`);
           setStatus(`Paired with user: ${partnerId}`);
           setPartnerId(partnerId);
 
@@ -47,29 +43,18 @@ const ChatRoulette = () => {
           });
 
           peer.on('signal', (data) => {
-            console.log('Sending signaling data:', data);
-            socket.emit(data.type === 'offer' ? 'offer' : 'answer', {
-              to: partnerId,
-              sdp: data,
-            });
+            socket.emit('offer', { to: partnerId, sdp: data });
           });
 
           peer.on('stream', (remoteStream) => {
-            console.log('Received remote stream');
             if (remoteVideoRef.current) {
               remoteVideoRef.current.srcObject = remoteStream;
             }
           });
 
-          peer.on('error', (err) => {
-            console.error('Peer error:', err);
-            setStatus('Connection failed. Please refresh and try again.');
-          });
-
           peerRef.current = peer;
 
           socket.on('offer', ({ from, sdp }) => {
-            console.log('Received offer:', sdp);
             const answeringPeer = new Peer({
               initiator: false,
               trickle: false,
@@ -79,50 +64,35 @@ const ChatRoulette = () => {
             answeringPeer.signal(sdp);
 
             answeringPeer.on('signal', (data) => {
-              console.log('Sending answer:', data);
               socket.emit('answer', { to: from, sdp: data });
             });
 
             answeringPeer.on('stream', (remoteStream) => {
-              console.log('Received remote stream');
               if (remoteVideoRef.current) {
                 remoteVideoRef.current.srcObject = remoteStream;
               }
-            });
-
-            answeringPeer.on('error', (err) => {
-              console.error('Peer error:', err);
-              setStatus('Connection failed. Please refresh and try again.');
             });
 
             peerRef.current = answeringPeer;
           });
 
           socket.on('answer', (sdp) => {
-            console.log('Received answer:', sdp);
             peer.signal(sdp);
           });
 
           socket.on('ice-candidate', (candidate) => {
-            console.log('Received ICE candidate:', candidate);
             peer.signal(candidate);
           });
         });
 
         socket.on('waiting', () => {
-          console.log('Waiting for a partner...');
           setStatus('Waiting for a partner...');
           setPartnerId(null);
         });
 
         socket.on('message', (message) => {
-          console.log('Message received:', message);
           setMessages((prev) => [...prev, message]);
         });
-      })
-      .catch((err) => {
-        console.error('Error accessing media devices:', err);
-        setStatus('Failed to access camera or microphone.');
       });
 
     return () => {
