@@ -12,8 +12,9 @@ const httpServer = http.createServer((req, res) => {
 
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:3000', 'https://chat-roulette.vercel.app/'],
+    origin: ['http://localhost:3000', 'https://chat-roulette.vercel.app'],
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
