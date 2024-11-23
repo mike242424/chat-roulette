@@ -20,7 +20,7 @@ const ChatRoulette = () => {
   const peerRef = useRef<Peer.Instance | null>(null);
 
   useEffect(() => {
-    const socket = io('http://localhost:3001');
+    const socket = io('https://chat-roulette.onrender.com');
     socketRef.current = socket;
 
     navigator.mediaDevices
