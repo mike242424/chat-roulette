@@ -18,10 +18,12 @@ const io = new Server(httpServer, {
   },
 });
 
-const waitingQueue = [];
+let waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
+  console.log(`${socket.id} connected`);
+
   if (waitingQueue.length > 0) {
     const partnerSocket = waitingQueue.shift();
     pairedUsers.set(socket.id, partnerSocket.id);
@@ -35,18 +37,28 @@ io.on('connection', (socket) => {
   }
 
   socket.on('offer', ({ to, sdp }) => {
-    io.to(to).emit('offer', { from: socket.id, sdp });
+    console.log(`Received offer from ${socket.id} to ${to}`);
+    if (to && sdp) {
+      io.to(to).emit('offer', { from: socket.id, sdp });
+    }
   });
 
   socket.on('answer', ({ to, sdp }) => {
-    io.to(to).emit('answer', { from: socket.id, sdp });
+    console.log(`Received answer from ${socket.id} to ${to}`);
+    if (to && sdp) {
+      io.to(to).emit('answer', { from: socket.id, sdp });
+    }
   });
 
   socket.on('ice-candidate', ({ to, candidate }) => {
-    io.to(to).emit('ice-candidate', { from: socket.id, candidate });
+    console.log(`Received ICE candidate from ${socket.id} to ${to}`);
+    if (to && candidate) {
+      io.to(to).emit('ice-candidate', { from: socket.id, candidate });
+    }
   });
 
   socket.on('message', ({ to, text }) => {
+    console.log(`Message from ${socket.id} to ${to}: ${text}`);
     const partnerSocket = io.sockets.sockets.get(to);
     if (partnerSocket) {
       partnerSocket.emit('message', { from: socket.id, text });
@@ -54,6 +66,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    console.log(`${socket.id} disconnected`);
     const partnerId = pairedUsers.get(socket.id);
     pairedUsers.delete(socket.id);
 
@@ -66,8 +79,7 @@ io.on('connection', (socket) => {
       }
     }
 
-    const index = waitingQueue.indexOf(socket);
-    if (index !== -1) waitingQueue.splice(index, 1);
+    waitingQueue = waitingQueue.filter((s) => s.id !== socket.id);
   });
 });
 
