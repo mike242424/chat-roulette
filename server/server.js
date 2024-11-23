@@ -3,7 +3,13 @@ import http from 'http';
 
 const PORT = process.env.PORT || 3001;
 
-const httpServer = http.createServer();
+const httpServer = http.createServer((req, res) => {
+  if (req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Socket.IO server is running.');
+  }
+});
+
 const io = new Server(httpServer, {
   cors: {
     origin: ['http://localhost:3000', 'https://chat-roulette.vercel.app/'],
