@@ -40,7 +40,7 @@ const ChatRoulette = () => {
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
           path: '/peerjs',
-          secure: true, // Ensure secure WebSocket (wss)
+          secure: true, // Use WSS for secure connections
         });
         peerRef.current = peer;
 
