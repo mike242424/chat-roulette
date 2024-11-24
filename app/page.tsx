@@ -23,6 +23,7 @@ const ChatRoulette = () => {
   useEffect(() => {
     const initializeConnection = async () => {
       try {
+        // Access local video/audio stream
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
@@ -32,33 +33,41 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        // Socket.IO Initialization
+        // Initialize Socket.IO
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'], // Ensure WebSocket connection
+          transports: ['websocket'],
         });
         socketRef.current = socket;
 
-        // PeerJS Initialization
+        // Initialize PeerJS
         const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com', // Backend URL
-          port: 443, // Use port 443 for HTTPS
-          path: '/', // Path where PeerJS server is hosted
-          secure: true, // Use HTTPS
+          host: 'chat-roulette.onrender.com',
+          port: 443,
+          secure: true,
+          path: '/peerjs',
           config: {
             iceServers: [
-              { url: 'stun:stun.l.google.com:19302' },
-              { url: 'turn:homeo@turn.bistri.com:80', credential: 'homeo' },
+              { urls: 'stun:stun.l.google.com:19302' },
+              {
+                urls: 'turn:your-turn-server-url',
+                username: 'your-username',
+                credential: 'your-credential',
+              },
             ],
           },
         });
 
         peerRef.current = peer;
 
+        // Handle PeerJS open connection
         peer.on('open', (id) => {
+          console.log('PeerJS ID:', id);
           socket.emit('peer-id', id);
         });
 
+        // Handle pairing
         socket.on('paired', ({ partnerId }) => {
+          console.log('Paired with:', partnerId);
           setStatus('Connected to a partner!');
           setPartnerId(partnerId);
 
@@ -79,7 +88,9 @@ const ChatRoulette = () => {
           setPartnerId(null);
         });
 
+        // Handle incoming calls
         peer.on('call', (call) => {
+          console.log('Incoming call...');
           call.answer(stream);
 
           call.on('stream', (remoteStream) => {
@@ -91,8 +102,18 @@ const ChatRoulette = () => {
           callRef.current = call;
         });
 
+        // Handle messages
         socket.on('message', (message) => {
           setMessages((prev) => [...prev, message]);
+        });
+
+        // Error handling
+        peer.on('error', (err) => {
+          console.error('PeerJS Error:', err);
+        });
+
+        socket.on('connect_error', (err) => {
+          console.error('Socket.IO Connection Error:', err);
         });
       } catch (error) {
         console.error('Error initializing connections:', error);
