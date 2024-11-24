@@ -2,7 +2,7 @@ import { Server } from 'socket.io';
 import http from 'http';
 import { PeerServer } from 'peer';
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
