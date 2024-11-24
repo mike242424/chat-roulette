@@ -2,8 +2,17 @@ import express from 'express';
 import { Server } from 'socket.io';
 import { PeerServer } from 'peer';
 import http from 'http';
+import cors from 'cors';
 
 const app = express();
+
+// Allow CORS for your frontend's domain
+app.use(
+  cors({
+    origin: 'https://chat-roulette.vercel.app', // Replace with your frontend URL
+  }),
+);
+
 const httpServer = http.createServer(app);
 
 // Mount PeerJS Server
