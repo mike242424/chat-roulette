@@ -19,7 +19,7 @@ app.use(
 const peerServer = PeerServer({
   path: '/peerjs',
   debug: true, // Enable debugging for PeerJS
-  key: 'peerjs',
+  // key: 'peerjs',
 });
 
 // Attach PeerJS to /peerjs
