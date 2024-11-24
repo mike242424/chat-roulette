@@ -2,12 +2,10 @@ import { Server } from 'socket.io';
 import http from 'http';
 import { PeerServer } from 'peer';
 
-const PORT = process.env.PORT || 10000;
-
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:3000', 'https://chat-roulette.vercel.app'],
+    origin: 'http://localhost:3000',
     methods: ['GET', 'POST'],
   },
 });
@@ -60,8 +58,8 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`Socket.io server running on port ${PORT}`);
+httpServer.listen(3001, () => {
+  console.log('Socket.io server running on port 3001');
 });
 
 const peerServer = PeerServer({
