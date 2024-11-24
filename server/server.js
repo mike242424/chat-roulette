@@ -16,9 +16,12 @@ app.use(
 );
 
 // SSL Certificate (Use a valid certificate in production)
+fs.writeFileSync('./key.pem', Buffer.from(process.env.SSL_KEY_B64, 'base64'));
+fs.writeFileSync('./cert.pem', Buffer.from(process.env.SSL_CERT_B64, 'base64'));
+
 const sslOptions = {
-  key: fs.readFileSync('./key.pem'), // Replace with your SSL key path
-  cert: fs.readFileSync('./cert.pem'), // Replace with your SSL cert path
+  key: fs.readFileSync('./key.pem'),
+  cert: fs.readFileSync('./cert.pem'),
 };
 
 // Create HTTPS Server
