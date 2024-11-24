@@ -32,21 +32,14 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'],
-        });
+        const socket = io('http://localhost:3001');
         socketRef.current = socket;
 
         const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com',
-          port: 443,
-          secure: true,
+          host: 'localhost',
+          port: 3002,
           path: '/peerjs',
-          config: {
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-          },
         });
-
         peerRef.current = peer;
 
         peer.on('open', (id) => {
@@ -86,7 +79,7 @@ const ChatRoulette = () => {
           callRef.current = call;
         });
 
-        socket.on('message', (message) => {
+        socket.on('message', (message: Message) => {
           setMessages((prev) => [...prev, message]);
         });
       } catch (error) {

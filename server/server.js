@@ -1,74 +1,19 @@
-import express from 'express';
 import { Server } from 'socket.io';
+import http from 'http';
 import { PeerServer } from 'peer';
-import https from 'https';
-import cors from 'cors';
 
-const app = express();
-
-// CORS Configuration
-app.use(
-  cors({
-    origin: 'https://chat-roulette.vercel.app',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  }),
-);
-
-// Validate SSL Environment Variables
-if (!process.env.SSL_KEY_B64 || !process.env.SSL_CERT_B64) {
-  console.error(
-    'Missing SSL environment variables. Ensure SSL_KEY_B64 and SSL_CERT_B64 are set.',
-  );
-  process.exit(1);
-}
-
-// SSL Certificate
-let sslOptions;
-try {
-  sslOptions = {
-    key: Buffer.from(process.env.SSL_KEY_B64, 'base64').toString('utf8'),
-    cert: Buffer.from(process.env.SSL_CERT_B64, 'base64').toString('utf8'),
-  };
-} catch (error) {
-  console.error('Error setting up SSL certificates:', error.message);
-  process.exit(1);
-}
-
-// Create HTTPS Server
-const httpsServer = https.createServer(sslOptions, app);
-
-// PeerJS Configuration
-const peerServer = PeerServer({
-  path: '/peerjs',
-  debug: true,
-});
-
-peerServer.on('connection', (client) => {
-  console.log(`Peer connected: ${client.id}`);
-});
-peerServer.on('disconnect', (client) => {
-  console.log(`Peer disconnected: ${client.id}`);
-});
-
-// Attach PeerJS to /peerjs
-app.use('/peerjs', peerServer);
-
-// Socket.IO Server Configuration
-const io = new Server(httpsServer, {
+const httpServer = http.createServer();
+const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: 'http://localhost:3000',
     methods: ['GET', 'POST'],
   },
 });
 
-// Queue Management
 const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
-
   socket.on('peer-id', (peerId) => {
     socket.peerId = peerId;
 
@@ -108,14 +53,18 @@ io.on('connection', (socket) => {
       }
     }
 
-    const index = waitingQueue.findIndex((s) => s.id === socket.id);
+    const index = waitingQueue.indexOf(socket);
     if (index !== -1) waitingQueue.splice(index, 1);
   });
 });
 
-// Start Server
-const port = process.env.PORT || 443;
-httpsServer.listen(port, () => {
-  console.log(`Socket.IO server running on port ${port}`);
-  console.log(`PeerJS server available at /peerjs`);
+httpServer.listen(3001, () => {
+  console.log('Socket.io server running on port 3001');
 });
+
+const peerServer = PeerServer({
+  port: 3002,
+  path: '/peerjs',
+});
+
+console.log('PeerJS server running on port 3002');
