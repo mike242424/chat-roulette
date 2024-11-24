@@ -32,13 +32,16 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        const socket = io('http://localhost:3001');
+        // Connect to the deployed Socket.io server
+        const socket = io('https://chat-roulette.onrender.com'); // Backend URL
         socketRef.current = socket;
 
+        // Connect to the deployed PeerJS server
         const peer = new Peer('', {
-          host: 'localhost',
-          port: 3002,
+          host: 'chat-roulette.onrender.com', // Backend URL
+          port: 443, // HTTPS port
           path: '/peerjs',
+          secure: true, // Use HTTPS
         });
         peerRef.current = peer;
 
