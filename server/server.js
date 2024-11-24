@@ -1,21 +1,23 @@
 import { Server } from 'socket.io';
-import { PeerServer } from 'peer';
 import express from 'express';
+import { PeerServer } from 'peer';
 import http from 'http';
 
 const app = express();
 const httpServer = http.createServer(app);
 
-// Serve the PeerJS server at the /peerjs endpoint
+// PeerJS Server
 const peerServer = PeerServer({
   path: '/peerjs',
 });
 
-app.use(peerServer);
+// Mount PeerJS on the `/peerjs` endpoint
+app.use('/peerjs', peerServer);
 
+// Socket.IO Server
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: 'https://chat-roulette.vercel.app', // Frontend domain
     methods: ['GET', 'POST'],
   },
 });
@@ -68,8 +70,8 @@ io.on('connection', (socket) => {
   });
 });
 
-// Use Render's dynamic port
-const port = process.env.PORT || 3000;
+// Use the PORT environment variable provided by Render
+const port = process.env.PORT || 10000;
 httpServer.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
