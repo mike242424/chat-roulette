@@ -9,9 +9,9 @@ const app = express();
 // CORS Configuration
 app.use(
   cors({
-    origin: ['https://chat-roulette.vercel.app'], // Allow your frontend URL
+    origin: 'https://chat-roulette.vercel.app',
     methods: ['GET', 'POST'],
-    credentials: true, // Allow credentials if necessary
+    credentials: true,
   }),
 );
 
@@ -23,7 +23,7 @@ if (!process.env.SSL_KEY_B64 || !process.env.SSL_CERT_B64) {
   process.exit(1);
 }
 
-// SSL Certificate (Use a valid certificate in production)
+// SSL Certificate
 let sslOptions;
 try {
   sslOptions = {
@@ -52,14 +52,7 @@ peerServer.on('disconnect', (client) => {
 });
 
 // Attach PeerJS to /peerjs
-app.use(
-  '/peerjs',
-  (req, res, next) => {
-    console.log(`PeerJS request: ${req.method} ${req.url}`);
-    next();
-  },
-  peerServer,
-);
+app.use('/peerjs', peerServer);
 
 // Socket.IO Server Configuration
 const io = new Server(httpsServer, {
@@ -69,40 +62,14 @@ const io = new Server(httpsServer, {
   },
 });
 
-// Custom Rate-Limiting Logic
-const rateLimits = new Map(); // Store rate limits for each socket ID
-io.use((socket, next) => {
-  const now = Date.now();
-  const limit = 100; // Max 100 events per minute
-  const interval = 60000; // Time window in milliseconds
-
-  const userRate = rateLimits.get(socket.id) || { count: 0, lastRequest: now };
-
-  if (now - userRate.lastRequest < interval) {
-    if (userRate.count >= limit) {
-      console.log(`Rate limit exceeded for ${socket.id}`);
-      return next(new Error('Rate limit exceeded. Please try again later.'));
-    }
-    userRate.count++;
-  } else {
-    userRate.count = 1;
-    userRate.lastRequest = now;
-  }
-
-  rateLimits.set(socket.id, userRate);
-  next();
-});
-
-// Manage Queue and Pairing
+// Queue Management
 const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
-  // Handle Peer ID registration
   socket.on('peer-id', (peerId) => {
-    console.log(`Peer registered: ${peerId}`);
     socket.peerId = peerId;
 
     if (waitingQueue.length > 0) {
@@ -112,33 +79,23 @@ io.on('connection', (socket) => {
 
       socket.emit('paired', { partnerId: partnerSocket.peerId });
       partnerSocket.emit('paired', { partnerId: socket.peerId });
-
-      console.log(`Paired ${socket.id} with ${partnerSocket.id}`);
     } else {
       waitingQueue.push(socket);
       socket.emit('waiting');
-      console.log(`Added ${socket.id} to waiting queue`);
     }
-
-    console.log(`Queue size: ${waitingQueue.length}`);
-    console.log(`Paired users:`, [...pairedUsers.entries()]);
   });
 
-  // Handle Messages
   socket.on('message', ({ text }) => {
     const partnerSocketId = pairedUsers.get(socket.id);
     if (partnerSocketId) {
       const recipient = io.sockets.sockets.get(partnerSocketId);
       if (recipient) {
         recipient.emit('message', { from: 'Partner', text });
-        console.log(`Message sent from ${socket.id} to ${partnerSocketId}`);
       }
     }
   });
 
-  // Handle Disconnection
   socket.on('disconnect', () => {
-    console.log(`Socket disconnected: ${socket.id}`);
     const partnerId = pairedUsers.get(socket.id);
     pairedUsers.delete(socket.id);
 
@@ -148,20 +105,16 @@ io.on('connection', (socket) => {
       if (partnerSocket) {
         waitingQueue.push(partnerSocket);
         partnerSocket.emit('waiting');
-        console.log(`Re-added ${partnerId} to waiting queue`);
       }
     }
 
-    // Ensure the socket is removed from the waiting queue
     const index = waitingQueue.findIndex((s) => s.id === socket.id);
     if (index !== -1) waitingQueue.splice(index, 1);
-
-    console.log(`Updated queue size: ${waitingQueue.length}`);
   });
 });
 
 // Start Server
-const port = process.env.PORT || 443; // Use HTTPS default port
+const port = process.env.PORT || 443;
 httpsServer.listen(port, () => {
   console.log(`Socket.IO server running on port ${port}`);
   console.log(`PeerJS server available at /peerjs`);
