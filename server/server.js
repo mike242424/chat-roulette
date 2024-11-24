@@ -5,7 +5,7 @@ import { PeerServer } from 'peer';
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: 'https://chat-roulette.vercel.app', // Allow frontend domain
     methods: ['GET', 'POST'],
   },
 });
@@ -58,13 +58,20 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(10000, () => {
-  console.log('Socket.io server running on port 10000');
+// Use dynamic port to handle Render's environment
+const port = process.env.PORT || 10000;
+httpServer.listen(port, () => {
+  console.log(`Socket.io server running on port ${port}`);
 });
 
+// PeerServer setup with HTTPS
 const peerServer = PeerServer({
-  port: 10001,
+  port: 443, // Secure port for HTTPS communication
   path: '/peerjs',
+  ssl: {
+    key: process.env.SSL_KEY_PATH,
+    cert: process.env.SSL_CERT_PATH,
+  },
 });
 
-console.log('PeerJS server running on port 10001');
+console.log('PeerJS server running with HTTPS');
