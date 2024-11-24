@@ -17,13 +17,13 @@ app.use(
 
 // PeerJS Configuration
 const peerServer = PeerServer({
-  path: '/',
+  path: '/peerjs',
   debug: true, // Enable debugging for PeerJS
 });
 
 // Attach PeerJS to /peerjs
 app.use(
-  '/',
+  '/peerjs',
   (req, res, next) => {
     console.log(`PeerJS request: ${req.method} ${req.url}`);
     next();
