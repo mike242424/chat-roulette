@@ -1,15 +1,18 @@
 import { Server } from 'socket.io';
 import http from 'http';
-import { PeerServer } from 'peer';
+import { ExpressPeerServer } from 'peer';
 
 const httpServer = http.createServer();
+
+// Configure Socket.io server with proper CORS
 const io = new Server(httpServer, {
   cors: {
     origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'], // Include headers if necessary
-    credentials: true, // Allow credentials if needed
+    allowedHeaders: ['Content-Type'], // Allow necessary headers
+    credentials: true, // Allow credentials
   },
+  transports: ['websocket', 'polling'], // Ensure WebSocket works
 });
 
 const waitingQueue = [];
@@ -60,14 +63,26 @@ io.on('connection', (socket) => {
   });
 });
 
-// Use the Render-assigned PORT environment variable
+// Configure PeerJS server
+const peerServer = ExpressPeerServer(httpServer, {
+  path: '/peerjs',
+  allow_discovery: true, // Optional for discovery
+});
+
+// Add CORS middleware to PeerJS
+peerServer.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://chat-roulette.vercel.app');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
+
+// Attach PeerJS server to the HTTP server
+httpServer.on('request', peerServer);
+
+// Start the server
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
-
-// Run PeerJS server alongside Socket.io
-PeerServer({
-  server: httpServer, // Use the same server instance
-  path: '/peerjs',
 });

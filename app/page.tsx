@@ -41,8 +41,8 @@ const ChatRoulette = () => {
 
         // Connect to the deployed PeerJS server
         const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com', // Backend URL
-          port: 443, // HTTPS port
+          host: 'chat-roulette.onrender.com',
+          port: 443,
           path: '/peerjs',
           secure: true, // Use HTTPS
         });
