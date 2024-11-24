@@ -11,6 +11,7 @@ const io = new Server(httpServer, {
     origin: 'https://chat-roulette.vercel.app',
     methods: ['GET', 'POST'],
   },
+  transports: ['websocket'],
 });
 
 const waitingQueue = [];
@@ -63,6 +64,7 @@ io.on('connection', (socket) => {
 
 const peerServer = ExpressPeerServer(httpServer, {
   path: '/peerjs',
+  allow_discovery: true,
 });
 httpServer.on('request', peerServer);
 
