@@ -72,6 +72,13 @@ const peerServer = ExpressPeerServer(httpServer, {
   allow_discovery: true,
 });
 
+peerServer.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://chat-roulette.vercel.app'); // Frontend URL
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 peerServer.on('connection', (client) => {
   console.log('PeerJS connection established:', client.id);
 });
