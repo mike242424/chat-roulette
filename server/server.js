@@ -3,19 +3,15 @@ import { Server } from 'socket.io';
 import { PeerServer } from 'peer';
 import http from 'http';
 
-// Initialize the Express app
 const app = express();
-
-// Create an HTTP server
 const httpServer = http.createServer(app);
 
-// PeerJS Server
+// Mount PeerJS Server
 const peerServer = PeerServer({
-  path: '/peerjs', // PeerJS endpoint
+  path: '/peerjs', // Path for PeerJS
 });
 
-// Mount PeerJS on `/peerjs`
-app.use('/peerjs', peerServer);
+app.use('/peerjs', peerServer); // Attach PeerJS to /peerjs
 
 // Socket.IO Server
 const io = new Server(httpServer, {
