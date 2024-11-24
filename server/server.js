@@ -5,8 +5,10 @@ import { PeerServer } from 'peer';
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app', // Allow requests from your frontend
+    origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'], // Include headers if necessary
+    credentials: true, // Allow credentials if needed
   },
 });
 
@@ -61,7 +63,7 @@ io.on('connection', (socket) => {
 // Use the Render-assigned PORT environment variable
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
-  console.log(`Socket.io server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 // Run PeerJS server alongside Socket.io

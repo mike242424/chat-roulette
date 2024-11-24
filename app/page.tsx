@@ -33,7 +33,10 @@ const ChatRoulette = () => {
         }
 
         // Connect to the deployed Socket.io server
-        const socket = io('https://chat-roulette.onrender.com'); // Backend URL
+        const socket = io('https://chat-roulette.onrender.com', {
+          transports: ['websocket', 'polling'],
+          withCredentials: true,
+        });
         socketRef.current = socket;
 
         // Connect to the deployed PeerJS server
