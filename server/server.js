@@ -7,7 +7,7 @@ const httpServer = http.createServer();
 
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: '*',
     methods: ['GET', 'POST'],
   },
   transports: ['websocket', 'polling'],
