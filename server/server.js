@@ -6,16 +6,18 @@ const PORT = process.env.PORT || 3001;
 
 const httpServer = http.createServer();
 
+// Initialize Socket.IO with proper CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
   },
-  transports: ['websocket', 'polling'],
+  transports: ['websocket', 'polling'], // Support WebSocket and polling
 });
 
+// Socket.IO logic
 const waitingQueue = [];
 const pairedUsers = new Map();
 
@@ -67,22 +69,25 @@ io.on('connection', (socket) => {
   });
 });
 
+// Initialize PeerServer
 const peerServer = ExpressPeerServer(httpServer, {
   path: '/peerjs',
-  allow_discovery: true,
+  allow_discovery: true, // Enable discovery for debugging
 });
 
+// Attach PeerServer to HTTP server
 httpServer.on('request', (req, res) => {
   res.setHeader(
     'Access-Control-Allow-Origin',
     'https://chat-roulette.vercel.app',
-  );
+  ); // Frontend URL
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 });
 
 httpServer.on('request', peerServer);
 
+// Start the server
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`PeerJS server running on path /peerjs`);

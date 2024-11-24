@@ -33,23 +33,25 @@ const ChatRoulette = () => {
         }
 
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'],
+          transports: ['websocket'], // Force WebSocket transport
         });
         socketRef.current = socket;
 
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
-          port: 443,
+          port: 443, // HTTPS port
           path: '/peerjs',
-          secure: true,
+          secure: true, // Ensure secure connection
         });
         peerRef.current = peer;
 
         peer.on('open', (id) => {
+          console.log(`PeerJS connection opened with ID: ${id}`);
           socket.emit('peer-id', id);
         });
 
         socket.on('paired', ({ partnerId }) => {
+          console.log(`Paired with partner ID: ${partnerId}`);
           setStatus('Connected to a partner!');
           setPartnerId(partnerId);
 
@@ -66,11 +68,13 @@ const ChatRoulette = () => {
         });
 
         socket.on('waiting', () => {
+          console.log('Waiting for a partner...');
           setStatus('Waiting for a partner...');
           setPartnerId(null);
         });
 
         peer.on('call', (call) => {
+          console.log('Incoming call...');
           call.answer(stream);
 
           call.on('stream', (remoteStream) => {
