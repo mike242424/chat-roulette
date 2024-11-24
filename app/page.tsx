@@ -32,13 +32,14 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        const socket = io('http://localhost:3001');
+        const socket = io('https://chat-roulette.onrender.com');
         socketRef.current = socket;
 
         const peer = new Peer('', {
-          host: 'localhost',
-          port: 3002,
+          host: 'chat-roulette.onrender.com',
+          port: 443,
           path: '/peerjs',
+          secure: true,
         });
         peerRef.current = peer;
 
@@ -140,6 +141,7 @@ const ChatRoulette = () => {
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           className="neon-input"
           placeholder="Type your message..."
+          disabled={!partnerId || !input.trim()}
         />
         <button
           onClick={sendMessage}
