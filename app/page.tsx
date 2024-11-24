@@ -143,12 +143,12 @@ const ChatRoulette = () => {
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           className="neon-input"
           placeholder="Type your message..."
-          disabled={!partnerId || !input.trim()}
+          // disabled={!partnerId || !input.trim()}
         />
         <button
           onClick={sendMessage}
           className="neon-button"
-          disabled={!partnerId || !input.trim()}
+          // disabled={!partnerId || !input.trim()}
         >
           Send
         </button>
