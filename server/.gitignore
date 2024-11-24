@@ -1,1 +1,5 @@
 .env
+key.pem
+cert.pem
+key.pem.b64
+cert.pem.b64
