@@ -16,6 +16,8 @@ const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
+  console.log(`New connection: ${socket.id}`);
+
   socket.on('peer-id', (peerId) => {
     socket.peerId = peerId;
 
@@ -43,6 +45,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    console.log(`Disconnected: ${socket.id}`);
     const partnerId = pairedUsers.get(socket.id);
     pairedUsers.delete(socket.id);
 
