@@ -40,9 +40,16 @@ const ChatRoulette = () => {
 
         // PeerJS Initialization
         const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com',
-          path: '/peerjs',
+          host: 'chat-roulette.onrender.com', // Backend URL
+          port: 443, // Use port 443 for HTTPS
+          path: '/', // Path where PeerJS server is hosted
           secure: true, // Use HTTPS
+          config: {
+            iceServers: [
+              { url: 'stun:stun.l.google.com:19302' },
+              { url: 'turn:homeo@turn.bistri.com:80', credential: 'homeo' },
+            ],
+          },
         });
 
         peerRef.current = peer;
