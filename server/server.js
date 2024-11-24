@@ -1,24 +1,33 @@
 import express from 'express';
 import { Server } from 'socket.io';
 import { PeerServer } from 'peer';
-import http from 'http';
+import https from 'https';
+import fs from 'fs';
 import cors from 'cors';
 
 const app = express();
-const httpServer = http.createServer(app);
 
 // CORS Configuration
 app.use(
   cors({
-    origin: 'https://chat-roulette.vercel.app', // Replace with your Vercel frontend URL
+    origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
   }),
 );
 
+// SSL Certificate (Use a valid certificate in production)
+const sslOptions = {
+  key: fs.readFileSync('./key.pem'), // Replace with your SSL key path
+  cert: fs.readFileSync('./cert.pem'), // Replace with your SSL cert path
+};
+
+// Create HTTPS Server
+const httpsServer = https.createServer(sslOptions, app);
+
 // PeerJS Configuration
 const peerServer = PeerServer({
   path: '/peerjs',
-  debug: true, // Enable debugging for PeerJS
+  debug: true,
 });
 
 // Attach PeerJS to /peerjs
@@ -32,9 +41,9 @@ app.use(
 );
 
 // Socket.IO Server Configuration
-const io = new Server(httpServer, {
+const io = new Server(httpsServer, {
   cors: {
-    origin: 'chat-roulette.vercel.app', // Replace with your Vercel frontend URL
+    origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
   },
 });
@@ -89,8 +98,8 @@ io.on('connection', (socket) => {
 });
 
 // Start Server
-const port = process.env.PORT || 443; // Dynamic port for cloud hosting
-httpServer.listen(port, () => {
+const port = process.env.PORT || 443; // Use HTTPS default port
+httpsServer.listen(port, () => {
   console.log(`Socket.IO server running on port ${port}`);
   console.log(`PeerJS server available at /peerjs`);
 });
