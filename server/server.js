@@ -10,7 +10,7 @@ const httpServer = http.createServer(app);
 // CORS Configuration
 app.use(
   cors({
-    origin: 'chat-roulette.vercel.app', // Replace with your Vercel frontend URL
+    origin: 'https://chat-roulette.vercel.app', // Replace with your Vercel frontend URL
     methods: ['GET', 'POST'],
   }),
 );
