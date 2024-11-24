@@ -9,15 +9,21 @@ const io = new Server(httpServer, {
   cors: {
     origin: 'https://chat-roulette.vercel.app',
     methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
   },
+});
+
+const peerServer = PeerServer({
+  server: httpServer,
+  path: '/peerjs',
+  allow_discovery: true,
 });
 
 const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
-  console.log(`New connection: ${socket.id}`);
-
   socket.on('peer-id', (peerId) => {
     socket.peerId = peerId;
 
@@ -45,7 +51,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`Disconnected: ${socket.id}`);
     const partnerId = pairedUsers.get(socket.id);
     pairedUsers.delete(socket.id);
 
@@ -61,11 +66,6 @@ io.on('connection', (socket) => {
     const index = waitingQueue.indexOf(socket);
     if (index !== -1) waitingQueue.splice(index, 1);
   });
-});
-
-const peerServer = PeerServer({
-  server: httpServer,
-  path: '/peerjs',
 });
 
 httpServer.listen(port, () => {
