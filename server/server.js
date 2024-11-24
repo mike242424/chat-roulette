@@ -1,21 +1,12 @@
 import { Server } from 'socket.io';
 import http from 'http';
+import { PeerServer } from 'peer';
 
-const PORT = process.env.PORT || 3001;
-
-const httpServer = http.createServer((req, res) => {
-  if (req.url === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Socket.IO server is running.');
-  }
-});
-
+const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:3000', 'https://chat-roulette.vercel.app'],
+    origin: 'http://localhost:3000',
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true,
   },
 });
 
@@ -23,34 +14,29 @@ const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
-  if (waitingQueue.length > 0) {
-    const partnerSocket = waitingQueue.shift();
-    pairedUsers.set(socket.id, partnerSocket.id);
-    pairedUsers.set(partnerSocket.id, socket.id);
+  socket.on('peer-id', (peerId) => {
+    socket.peerId = peerId;
 
-    socket.emit('paired', { partnerId: partnerSocket.id });
-    partnerSocket.emit('paired', { partnerId: socket.id });
-  } else {
-    waitingQueue.push(socket);
-    socket.emit('waiting');
-  }
+    if (waitingQueue.length > 0) {
+      const partnerSocket = waitingQueue.shift();
+      pairedUsers.set(socket.id, partnerSocket.id);
+      pairedUsers.set(partnerSocket.id, socket.id);
 
-  socket.on('offer', ({ to, sdp }) => {
-    io.to(to).emit('offer', { from: socket.id, sdp });
+      socket.emit('paired', { partnerId: partnerSocket.peerId });
+      partnerSocket.emit('paired', { partnerId: socket.peerId });
+    } else {
+      waitingQueue.push(socket);
+      socket.emit('waiting');
+    }
   });
 
-  socket.on('answer', ({ to, sdp }) => {
-    io.to(to).emit('answer', { from: socket.id, sdp });
-  });
-
-  socket.on('ice-candidate', ({ to, candidate }) => {
-    io.to(to).emit('ice-candidate', { from: socket.id, candidate });
-  });
-
-  socket.on('message', ({ to, text }) => {
-    const partnerSocket = io.sockets.sockets.get(to);
-    if (partnerSocket) {
-      partnerSocket.emit('message', { from: socket.id, text });
+  socket.on('message', ({ text }) => {
+    const partnerSocketId = pairedUsers.get(socket.id);
+    if (partnerSocketId) {
+      const recipient = io.sockets.sockets.get(partnerSocketId);
+      if (recipient) {
+        recipient.emit('message', { from: 'Partner', text });
+      }
     }
   });
 
@@ -72,6 +58,13 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`Signaling server listening on port ${PORT}`);
+httpServer.listen(3001, () => {
+  console.log('Socket.io server running on port 3001');
 });
+
+const peerServer = PeerServer({
+  port: 3002,
+  path: '/peerjs',
+});
+
+console.log('PeerJS server running on port 3002');

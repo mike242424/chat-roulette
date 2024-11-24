@@ -1,3 +1,32 @@
-{
-  "extends": ["next/core-web-vitals", "next/typescript"]
+import { Server } from "socket.io";
+
+let io;
+
+export function GET(req) {
+  if (!io) {
+    const server = req.nextUrl.searchParams.get("socket") || req.socket.server;
+    io = new Server(server);
+
+    io.on("connection", (socket) => {
+      console.log("User connected");
+
+      // Join a room
+      socket.on("join-room", (roomId) => {
+        socket.join(roomId);
+        socket.to(roomId).emit("user-connected", socket.id);
+      });
+
+      // Handle signaling messages
+      socket.on("send-signal", ({ roomId, signalData }) => {
+        socket.to(roomId).emit("receive-signal", signalData);
+      });
+
+      socket.on("disconnect", () => {
+        console.log("User disconnected");
+      });
+    });
+
+    req.socket.server.io = io;
+  }
+  return new Response("Socket.io is running");
 }
