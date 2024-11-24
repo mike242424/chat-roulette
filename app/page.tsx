@@ -5,12 +5,15 @@ import { io } from 'socket.io-client';
 import Peer from 'peerjs';
 
 const ChatRoulette = () => {
+  interface Message {
+    from: string;
+    text: string;
+  }
+
+  const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState('Connecting...');
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<{ from: string; text: string }[]>(
-    [],
-  );
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const socketRef = useRef<any>(null);
@@ -29,37 +32,34 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'], // Force WebSocket transport
-        });
+        const socket = io('http://localhost:3001');
         socketRef.current = socket;
 
         const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com',
-          port: 443, // HTTPS port
-          path: '/peerjs', // Correct path for PeerJS
-          secure: true, // Use secure connection
+          host: 'localhost',
+          port: 3002,
+          path: '/peerjs',
         });
         peerRef.current = peer;
 
         peer.on('open', (id) => {
-          console.log(`PeerJS connected with ID: ${id}`);
           socket.emit('peer-id', id);
         });
 
         socket.on('paired', ({ partnerId }) => {
-          console.log(`Paired with partner ID: ${partnerId}`);
           setStatus('Connected to a partner!');
           setPartnerId(partnerId);
 
-          const call = peer.call(partnerId, stream);
-          callRef.current = call;
+          if (peerRef.current) {
+            const call = peerRef.current.call(partnerId, stream);
+            callRef.current = call;
 
-          call.on('stream', (remoteStream) => {
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-            }
-          });
+            call.on('stream', (remoteStream) => {
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = remoteStream;
+              }
+            });
+          }
         });
 
         socket.on('waiting', () => {
@@ -68,7 +68,6 @@ const ChatRoulette = () => {
         });
 
         peer.on('call', (call) => {
-          console.log('Incoming call...');
           call.answer(stream);
 
           call.on('stream', (remoteStream) => {
@@ -80,7 +79,7 @@ const ChatRoulette = () => {
           callRef.current = call;
         });
 
-        socket.on('message', (message) => {
+        socket.on('message', (message: Message) => {
           setMessages((prev) => [...prev, message]);
         });
       } catch (error) {
@@ -106,29 +105,50 @@ const ChatRoulette = () => {
   };
 
   return (
-    <div>
-      <h1>Chat Roulette</h1>
-      <p>{status}</p>
-      <div>
-        <video ref={localVideoRef} autoPlay muted />
-        <video ref={remoteVideoRef} autoPlay />
+    <div className="chat-container">
+      <h1 className="neon-title">Chat Roulette</h1>
+      <p className="status-indicator">{status}</p>
+
+      <div className="video-container">
+        <video ref={localVideoRef} autoPlay muted className="video" />
+        <video ref={remoteVideoRef} autoPlay className="video" />
       </div>
-      <div>
-        {messages.map((msg, idx) => (
-          <div key={idx}>
-            <strong>{msg.from}:</strong> {msg.text}
-          </div>
-        ))}
+
+      <div className="chat-box">
+        {messages.length === 0 ? (
+          <p className="empty-chat">No messages yet...</p>
+        ) : (
+          messages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`chat-message ${
+                msg.from === 'You' ? 'chat-message-right' : 'chat-message-left'
+              }`}
+            >
+              <strong>{msg.from === 'You' ? 'You' : 'Partner'}:</strong>{' '}
+              {msg.text}
+            </div>
+          ))
+        )}
       </div>
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-      />
-      <button onClick={sendMessage} disabled={!partnerId || !input.trim()}>
-        Send
-      </button>
+
+      <div className="chat-input">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          className="neon-input"
+          placeholder="Type your message..."
+        />
+        <button
+          onClick={sendMessage}
+          className="neon-button"
+          disabled={!partnerId || !input.trim()}
+        >
+          Send
+        </button>
+      </div>
     </div>
   );
 };
