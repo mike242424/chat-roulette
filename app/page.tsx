@@ -42,7 +42,7 @@ const ChatRoulette = () => {
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com', // Backend URL
           port: 10000, // Ensure path matches backend
-          secure: true,
+          secure: false,
           path: '/',
         });
         peerRef.current = peer;
