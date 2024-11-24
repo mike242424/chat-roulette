@@ -3,7 +3,6 @@ import { Server } from 'socket.io';
 import { PeerServer } from 'peer';
 import https from 'https';
 import cors from 'cors';
-import rateLimit from 'socketio-rate-limiter';
 
 const app = express();
 
@@ -70,13 +69,29 @@ const io = new Server(httpsServer, {
   },
 });
 
-// Rate Limiting for Socket.IO
-io.use(
-  rateLimit({
-    max: 100, // Allow 100 events per minute
-    interval: 60000, // Reset every minute
-  }),
-);
+// Custom Rate-Limiting Logic
+const rateLimits = new Map(); // Store rate limits for each socket ID
+io.use((socket, next) => {
+  const now = Date.now();
+  const limit = 100; // Max 100 events per minute
+  const interval = 60000; // Time window in milliseconds
+
+  const userRate = rateLimits.get(socket.id) || { count: 0, lastRequest: now };
+
+  if (now - userRate.lastRequest < interval) {
+    if (userRate.count >= limit) {
+      console.log(`Rate limit exceeded for ${socket.id}`);
+      return next(new Error('Rate limit exceeded. Please try again later.'));
+    }
+    userRate.count++;
+  } else {
+    userRate.count = 1;
+    userRate.lastRequest = now;
+  }
+
+  rateLimits.set(socket.id, userRate);
+  next();
+});
 
 // Manage Queue and Pairing
 const waitingQueue = [];
