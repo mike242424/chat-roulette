@@ -1,31 +1,11 @@
-import express from 'express';
 import { Server } from 'socket.io';
-import { PeerServer } from 'peer';
 import http from 'http';
-import cors from 'cors';
+import { PeerServer } from 'peer';
 
-const app = express();
-
-// Allow CORS for your frontend's domain
-app.use(
-  cors({
-    origin: 'https://chat-roulette.vercel.app', // Replace with your frontend URL
-  }),
-);
-
-const httpServer = http.createServer(app);
-
-// Mount PeerJS Server
-const peerServer = PeerServer({
-  path: '/peerjs', // Path for PeerJS
-});
-
-app.use('/peerjs', peerServer); // Attach PeerJS to /peerjs
-
-// Socket.IO Server
+const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app', // Frontend domain
+    origin: 'http://localhost:3000',
     methods: ['GET', 'POST'],
   },
 });
@@ -78,8 +58,13 @@ io.on('connection', (socket) => {
   });
 });
 
-// Use the PORT environment variable provided by Render
-const port = process.env.PORT || 10000;
-httpServer.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+httpServer.listen(3001, () => {
+  console.log('Socket.io server running on port 3001');
 });
+
+const peerServer = PeerServer({
+  port: 3002,
+  path: '/peerjs',
+});
+
+console.log('PeerJS server running on port 3002');

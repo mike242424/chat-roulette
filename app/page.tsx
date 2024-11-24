@@ -23,7 +23,6 @@ const ChatRoulette = () => {
   useEffect(() => {
     const initializeConnection = async () => {
       try {
-        // Request media streams
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
@@ -33,27 +32,20 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        // Initialize Socket.IO
-        const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'], // Ensure WebSocket connection
-        });
+        const socket = io('http://localhost:3001');
         socketRef.current = socket;
 
-        // Initialize PeerJS
         const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com', // Backend URL
-          path: '/', // Correct PeerJS path
-          secure: true, // Use WSS
+          host: 'localhost',
+          port: 3002,
+          path: '/peerjs',
         });
-
         peerRef.current = peer;
 
-        // PeerJS event: Open connection
         peer.on('open', (id) => {
           socket.emit('peer-id', id);
         });
 
-        // Handle pairing
         socket.on('paired', ({ partnerId }) => {
           setStatus('Connected to a partner!');
           setPartnerId(partnerId);
@@ -75,7 +67,6 @@ const ChatRoulette = () => {
           setPartnerId(null);
         });
 
-        // Handle incoming call
         peer.on('call', (call) => {
           call.answer(stream);
 
@@ -88,7 +79,6 @@ const ChatRoulette = () => {
           callRef.current = call;
         });
 
-        // Handle incoming messages
         socket.on('message', (message: Message) => {
           setMessages((prev) => [...prev, message]);
         });
