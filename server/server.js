@@ -4,12 +4,13 @@ import { ExpressPeerServer } from 'peer';
 
 const PORT = process.env.PORT || 3001;
 
+// Create the HTTP server
 const httpServer = http.createServer();
 
-// Initialize Socket.IO with proper CORS
+// Initialize Socket.IO with CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app', // Frontend URL
+    origin: 'https://chat-roulette.vercel.app', // Frontend domain
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
@@ -17,12 +18,31 @@ const io = new Server(httpServer, {
   transports: ['websocket', 'polling'], // Support WebSocket and polling
 });
 
+// PeerServer configuration
+const peerServer = ExpressPeerServer(httpServer, {
+  path: '/peerjs', // Correctly set the PeerJS path
+  allow_discovery: true, // Optional: Enable peer discovery for debugging
+});
+
+// Attach PeerServer to HTTP server
+httpServer.on('request', peerServer);
+
+// Add CORS headers for all HTTP requests
+httpServer.on('request', (req, res) => {
+  res.setHeader(
+    'Access-Control-Allow-Origin',
+    'https://chat-roulette.vercel.app',
+  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+});
+
 // Socket.IO logic
 const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
+  console.log(`Socket connected: ${socket.id}`);
 
   socket.on('peer-id', (peerId) => {
     socket.peerId = peerId;
@@ -51,7 +71,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.id);
+    console.log(`Socket disconnected: ${socket.id}`);
     const partnerId = pairedUsers.get(socket.id);
     pairedUsers.delete(socket.id);
 
@@ -68,24 +88,6 @@ io.on('connection', (socket) => {
     if (index !== -1) waitingQueue.splice(index, 1);
   });
 });
-
-// Initialize PeerServer
-const peerServer = ExpressPeerServer(httpServer, {
-  path: '/peerjs',
-  allow_discovery: true, // Enable discovery for debugging
-});
-
-// Attach PeerServer to HTTP server
-httpServer.on('request', (req, res) => {
-  res.setHeader(
-    'Access-Control-Allow-Origin',
-    'https://chat-roulette.vercel.app',
-  ); // Frontend URL
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-});
-
-httpServer.on('request', peerServer);
 
 // Start the server
 httpServer.listen(PORT, () => {
