@@ -1,15 +1,38 @@
+import express from 'express';
 import { Server } from 'socket.io';
-import http from 'http';
 import { PeerServer } from 'peer';
+import http from 'http';
+import cors from 'cors';
 
-const httpServer = http.createServer();
+const app = express();
+const httpServer = http.createServer(app);
+
+// CORS Configuration
+app.use(
+  cors({
+    origin: 'chat-roulette.vercel.app', // Replace with your Vercel frontend URL
+    methods: ['GET', 'POST'],
+  }),
+);
+
+// PeerJS Configuration
+const peerServer = PeerServer({
+  path: '/peerjs',
+  debug: true, // Enable debugging for PeerJS
+});
+
+// Attach PeerJS to /peerjs
+app.use('/peerjs', peerServer);
+
+// Socket.IO Server Configuration
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: 'chat-roulette.vercel.app', // Replace with your Vercel frontend URL
     methods: ['GET', 'POST'],
   },
 });
 
+// Manage Queue and Pairing
 const waitingQueue = [];
 const pairedUsers = new Map();
 
@@ -58,13 +81,9 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(3001, () => {
-  console.log('Socket.io server running on port 3001');
+// Start Server
+const port = process.env.PORT || 443; // Dynamic port for cloud hosting
+httpServer.listen(port, () => {
+  console.log(`Socket.IO server running on port ${port}`);
+  console.log(`PeerJS server available at /peerjs`);
 });
-
-const peerServer = PeerServer({
-  port: 3002,
-  path: '/peerjs',
-});
-
-console.log('PeerJS server running on port 3002');
