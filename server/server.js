@@ -1,15 +1,26 @@
 import { Server } from 'socket.io';
 import { PeerServer } from 'peer';
 import http from 'http';
+import cors from 'cors';
+import express from 'express';
 
+const app = express();
 const port = process.env.PORT || 3001;
-const httpServer = http.createServer();
+
+app.use(
+  cors({
+    origin: 'https://chat-roulette.vercel.app',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  }),
+);
+
+const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
     origin: 'https://chat-roulette.vercel.app',
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
     credentials: true,
   },
 });
@@ -18,6 +29,10 @@ const peerServer = PeerServer({
   server: httpServer,
   path: '/peerjs',
   allow_discovery: true,
+});
+
+app.get('/', (req, res) => {
+  res.send('Chat Roulette server is running!');
 });
 
 const waitingQueue = [];
