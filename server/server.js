@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import { PeerServer } from 'peer';
 import http from 'http';
 
+const port = process.env.PORT || 3001;
 const httpServer = http.createServer();
 
 const io = new Server(httpServer, {
@@ -64,6 +65,6 @@ const peerServer = PeerServer({
   path: '/peerjs',
 });
 
-httpServer.listen(3001, () => {
-  console.log('Server running on port 3001');
+httpServer.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
