@@ -2,18 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import Peer from 'peerjs';
+import Peer, { MediaConnection } from 'peerjs';
 
 const ChatRoulette = () => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<{ from?: string; text: string }[]>(
+    [],
+  );
   const [status, setStatus] = useState('Connecting...');
   const [partnerId, setPartnerId] = useState(null);
   const [input, setInput] = useState('');
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
-  const socketRef = useRef(null);
-  const peerRef = useRef(null);
-  const callRef = useRef(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
+  const peerRef = useRef<Peer | null>(null);
+  const callRef = useRef<MediaConnection | null>(null);
 
   useEffect(() => {
     const initializeConnection = async () => {
