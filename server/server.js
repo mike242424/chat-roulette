@@ -19,15 +19,17 @@ const peerServer = ExpressPeerServer(httpServer, {
   allow_discovery: true,
 });
 
-httpServer.on('request', (req, res) => {
-  res.setHeader(
-    'Access-Control-Allow-Origin',
-    'https://chat-roulette.vercel.app',
-  );
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-});
+// Attach PeerJS server directly to the HTTP server
 httpServer.on('request', peerServer);
+
+// Add logs to ensure PeerJS initialization
+peerServer.on('connection', (client) => {
+  console.log(`PeerJS connection established: ${client.id}`);
+});
+
+peerServer.on('disconnect', (client) => {
+  console.log(`PeerJS client disconnected: ${client.id}`);
+});
 
 const waitingQueue = [];
 const pairedUsers = new Map();

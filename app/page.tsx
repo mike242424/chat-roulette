@@ -32,7 +32,7 @@ const SimplifiedClient = () => {
         });
 
         socket.on('disconnect', (reason) => {
-          console.log('Socket disconnected:', reason);
+          console.error('Socket disconnected:', reason);
         });
 
         // Initialize PeerJS connection
@@ -40,13 +40,13 @@ const SimplifiedClient = () => {
           host: 'chat-roulette.onrender.com',
           port: 443,
           secure: true,
-          path: '/peerjs',
+          path: '/peerjs', // Ensure this matches the server-side configuration
         });
+
         peerRef.current = peer;
 
         peer.on('open', (id) => {
           console.log('Peer connected with ID:', id);
-          // Send peer ID to the socket server
           socket.emit('peer-id', id);
           console.log('peer-id emitted');
         });
