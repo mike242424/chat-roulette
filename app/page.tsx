@@ -42,13 +42,12 @@ const ChatRoulette = () => {
         socketRef.current = socket;
 
         console.log('Socket initialized.');
-
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
           port: 443,
           secure: true,
-          path: '/', // Ensure this matches the server configuration
         });
+
         peerRef.current = peer;
 
         peer.on('open', (id) => {
