@@ -9,7 +9,7 @@ const httpServer = http.createServer(app);
 // Configure Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app', // Allow your frontend
+    origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
@@ -19,6 +19,11 @@ const io = new Server(httpServer, {
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
+
+  socket.on('peer-id', (peerId) => {
+    console.log(`Peer ID received: ${peerId}`);
+    socket.peerId = peerId;
+  });
 
   socket.on('message', (data) => {
     console.log(`Message received: ${data}`);
@@ -37,10 +42,9 @@ io.on('connection', (socket) => {
 // Configure PeerJS
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
-  path: '/', // Use the root path
+  path: '/peerjs', // Keep it consistent
 });
 
-// Add CORS headers for PeerJS
 peerServer.on('headers', (headers) => {
   headers['Access-Control-Allow-Origin'] = 'https://chat-roulette.vercel.app';
   headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
@@ -48,7 +52,7 @@ peerServer.on('headers', (headers) => {
   headers['Access-Control-Allow-Credentials'] = 'true';
 });
 
-app.use('/', peerServer);
+app.use('/peerjs', peerServer);
 
 app.get('/', (req, res) => {
   res.send('WebRTC Backend Running!');
