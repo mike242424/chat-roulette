@@ -1,8 +1,14 @@
-const express = require('express');
-const http = require('http');
-const path = require('path');
-const { Server } = require('socket.io');
-const { ExpressPeerServer } = require('peer');
+import express from 'express';
+import http from 'http';
+import path from 'path';
+import { Server } from 'socket.io';
+import { ExpressPeerServer } from 'peer';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Resolve __dirname and __filename in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Initialize Express and HTTP server
 const app = express();
@@ -11,13 +17,13 @@ const httpServer = http.createServer(app);
 // Configure Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true,
+    allowedHeaders: ['Content-Type'], // Allow necessary headers
+    credentials: true, // Allow credentials (e.g., cookies)
   },
-  transports: ['websocket'],
-  allowEIO3: true,
+  transports: ['websocket'], // Use WebSocket transport only
+  allowEIO3: true, // Enable compatibility with older Socket.io clients
 });
 
 // WebSocket connection handling
@@ -38,7 +44,7 @@ io.on('connection', (socket) => {
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
   path: '/peerjs',
-  allow_discovery: true,
+  allow_discovery: true, // Enable peer discovery
 });
 
 // Mount PeerJS server
