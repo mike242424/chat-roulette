@@ -5,7 +5,7 @@ import { ExpressPeerServer } from 'peer';
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -14,6 +14,7 @@ const io = new Server(httpServer, {
   pingInterval: 25000,
 });
 
+// Create the PeerJS server
 const peerServer = ExpressPeerServer(httpServer, {
   path: '/peerjs',
   allow_discovery: true,
