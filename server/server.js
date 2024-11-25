@@ -13,6 +13,7 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
+    allowEIO3: true,
   },
   transports: ['websocket', 'polling'], // WebSocket with fallback
 });
