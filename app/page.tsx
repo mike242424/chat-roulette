@@ -111,7 +111,7 @@ const ChatRoulette = () => {
         <button
           onClick={sendMessage}
           className="neon-button"
-          disabled={!partnerId || !input.trim()}
+          // disabled={!partnerId || !input.trim()}
         >
           Send
         </button>
