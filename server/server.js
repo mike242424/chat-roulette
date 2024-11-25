@@ -14,7 +14,7 @@ const io = new Server(httpServer, {
     allowedHeaders: ['Content-Type'], // Allow necessary headers
     credentials: true, // Allow credentials
   },
-  transports: ['websocket', 'polling'], // Ensure WebSocket works
+  transports: ['websocket', 'polling'], // Ensure WebSocket transport
 });
 
 const waitingQueue = [];
@@ -73,6 +73,17 @@ const peerServer = ExpressPeerServer(httpServer, {
 
 // Mount PeerJS server to the app
 app.use('/peerjs', peerServer);
+
+// Add middleware to ensure WebSocket handshake works
+app.use((req, res, next) => {
+  res.setHeader(
+    'Access-Control-Allow-Origin',
+    'https://chat-roulette.vercel.app',
+  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
 
 // Test route for confirmation
 app.get('/', (req, res) => {
