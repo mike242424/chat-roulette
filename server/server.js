@@ -9,12 +9,12 @@ const httpServer = http.createServer(app);
 // Configure Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: 'https://chat-roulette.vercel.app', // Allow your frontend
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
   },
-  transports: ['websocket'], // Enforce WebSocket-only transport
+  transports: ['polling', 'websocket'], // Allow fallback to polling
 });
 
 io.on('connection', (socket) => {
@@ -28,15 +28,19 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
   });
+
+  socket.on('error', (error) => {
+    console.error(`WebSocket error: ${error}`);
+  });
 });
 
-// Configure PeerJS with Root Path `/`
+// Configure PeerJS
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
-  path: '/', // Use root path
+  path: '/', // Use the root path
 });
 
-// Add custom headers to PeerJS for CORS
+// Add CORS headers for PeerJS
 peerServer.on('headers', (headers) => {
   headers['Access-Control-Allow-Origin'] = 'https://chat-roulette.vercel.app';
   headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
@@ -44,10 +48,8 @@ peerServer.on('headers', (headers) => {
   headers['Access-Control-Allow-Credentials'] = 'true';
 });
 
-// Mount PeerJS on root
 app.use('/', peerServer);
 
-// Test route
 app.get('/', (req, res) => {
   res.send('WebRTC Backend Running!');
 });

@@ -34,7 +34,7 @@ const ChatRoulette = () => {
         }
 
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'], // Enforce WebSocket-only
+          transports: ['polling', 'websocket'], // Allow fallback to polling
           withCredentials: true,
         });
 
@@ -73,6 +73,7 @@ const ChatRoulette = () => {
           setStatus('Waiting for a partner...');
           setPartnerId(null);
         });
+
         peer.on('call', (call: MediaConnection) => {
           call.answer(stream);
 
