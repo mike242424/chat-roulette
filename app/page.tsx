@@ -33,18 +33,16 @@ const ChatRoulette = () => {
         }
 
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'],
+          transports: ['websocket'], // Force WebSocket transport
         });
-
         socketRef.current = socket;
 
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
           port: 443,
-          path: '/',
-          secure: true,
+          secure: true, // Ensure HTTPS
+          path: '/peerjs', // Correct PeerJS path
         });
-
         peerRef.current = peer;
 
         peer.on('open', (id) => {

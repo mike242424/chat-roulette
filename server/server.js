@@ -5,25 +5,35 @@ import { ExpressPeerServer } from 'peer';
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app',
+    origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  transports: ['websocket'],
-  allowEIO3: true,
+  transports: ['websocket'], // Use WebSocket transport only
 });
 
 const peerServer = ExpressPeerServer(httpServer, {
-  path: '/peerjs',
-  allow_discovery: true,
+  path: '/peerjs', // Path for PeerJS server
+  allow_discovery: true, // Allow peer discovery
 });
 
+// Attach PeerJS server to HTTP server
 httpServer.on('request', peerServer);
+
+peerServer.on('connection', (client) => {
+  console.log(`PeerJS client connected: ${client.getId()}`);
+});
+
+peerServer.on('disconnect', (client) => {
+  console.log(`PeerJS client disconnected: ${client.getId()}`);
+});
 
 const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
+  console.log(`Socket connected: ${socket.id}`);
+
   socket.on('peer-id', (peerId) => {
     socket.peerId = peerId;
 
@@ -65,6 +75,8 @@ io.on('connection', (socket) => {
 
     const index = waitingQueue.indexOf(socket);
     if (index !== -1) waitingQueue.splice(index, 1);
+
+    console.log(`Socket disconnected: ${socket.id}`);
   });
 });
 
