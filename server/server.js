@@ -7,7 +7,10 @@ const io = new Server(httpServer, {
   cors: {
     origin: 'https://chat-roulette.vercel.app',
     methods: ['GET', 'POST'],
+    credentials: true,
   },
+  transports: ['websocket'],
+  allowEIO3: true,
 });
 
 const peerServer = ExpressPeerServer(httpServer, {
