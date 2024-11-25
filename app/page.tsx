@@ -34,8 +34,8 @@ const ChatRoulette = () => {
 
         // Connect to the deployed Socket.io server
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket', 'polling'],
-          withCredentials: true,
+          transports: ['websocket'], // Enforce WebSocket
+          withCredentials: true, // Allow credentials
         });
         socketRef.current = socket;
 

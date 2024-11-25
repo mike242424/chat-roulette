@@ -11,10 +11,9 @@ const io = new Server(httpServer, {
   cors: {
     origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'], // Allow necessary headers
     credentials: true, // Allow credentials
   },
-  transports: ['websocket', 'polling'], // Ensure WebSocket transport
+  transports: ['websocket'], // Enforce WebSocket usage
 });
 
 const waitingQueue = [];
