@@ -1,66 +1,72 @@
-import express from 'express';
-import http from 'http';
 import { Server } from 'socket.io';
-import { ExpressPeerServer } from 'peer';
+import http from 'http';
+import { PeerServer } from 'peer';
 
-const app = express();
-const httpServer = http.createServer(app);
+const PORT = process.env.PORT || 3001;
 
-// Configure Socket.IO
+const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app', // Frontend domain
+    origin: ['http://localhost:3000', 'https://chat-roulette.vercel.app'],
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true,
-    allowEIO3: true,
   },
-  transports: ['websocket', 'polling'], // WebSocket with fallback
 });
 
-// Handle WebSocket connections
-io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
+const waitingQueue = [];
+const pairedUsers = new Map();
 
+io.on('connection', (socket) => {
   socket.on('peer-id', (peerId) => {
-    console.log(`Received peer ID: ${peerId}`);
     socket.peerId = peerId;
+
+    if (waitingQueue.length > 0) {
+      const partnerSocket = waitingQueue.shift();
+      pairedUsers.set(socket.id, partnerSocket.id);
+      pairedUsers.set(partnerSocket.id, socket.id);
+
+      socket.emit('paired', { partnerId: partnerSocket.peerId });
+      partnerSocket.emit('paired', { partnerId: socket.peerId });
+    } else {
+      waitingQueue.push(socket);
+      socket.emit('waiting');
+    }
   });
 
-  socket.on('message', (data) => {
-    console.log(`Message received: ${data}`);
-    socket.broadcast.emit('message', data);
+  socket.on('message', ({ text }) => {
+    const partnerSocketId = pairedUsers.get(socket.id);
+    if (partnerSocketId) {
+      const recipient = io.sockets.sockets.get(partnerSocketId);
+      if (recipient) {
+        recipient.emit('message', { from: 'Partner', text });
+      }
+    }
   });
 
   socket.on('disconnect', () => {
-    console.log(`Socket disconnected: ${socket.id}`);
+    const partnerId = pairedUsers.get(socket.id);
+    pairedUsers.delete(socket.id);
+
+    if (partnerId) {
+      pairedUsers.delete(partnerId);
+      const partnerSocket = io.sockets.sockets.get(partnerId);
+      if (partnerSocket) {
+        waitingQueue.push(partnerSocket);
+        partnerSocket.emit('waiting');
+      }
+    }
+
+    const index = waitingQueue.indexOf(socket);
+    if (index !== -1) waitingQueue.splice(index, 1);
   });
 });
 
-// Configure PeerJS Server
-const peerServer = ExpressPeerServer(httpServer, {
-  debug: true,
-  path: '/peerjs', // Mount PeerJS at `/peerjs`
-});
-
-// Add CORS headers for PeerJS
-peerServer.on('headers', (headers) => {
-  headers['Access-Control-Allow-Origin'] = 'https://chat-roulette.vercel.app';
-  headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
-  headers['Access-Control-Allow-Headers'] = 'Content-Type';
-  headers['Access-Control-Allow-Credentials'] = 'true';
-});
-
-// Mount PeerJS
-app.use('/peerjs', peerServer);
-
-// Root route (for testing)
-app.get('/', (req, res) => {
-  res.send('WebRTC Backend Running!');
-});
-
-// Start the server
-const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Socket.io server running on port ${PORT}`);
 });
+
+const peerServer = PeerServer({
+  port: 3002,
+  path: '/peerjs',
+});
+
+console.log('PeerJS server running on port 3002');

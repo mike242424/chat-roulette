@@ -1,25 +1,24 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import Peer from 'peerjs';
-import { MediaConnection } from 'peerjs';
-
-interface Message {
-  from: string;
-  text: string;
-}
 
 const ChatRoulette = () => {
+  interface Message {
+    from: string;
+    text: string;
+  }
+
   const [messages, setMessages] = useState<Message[]>([]);
-  const [status, setStatus] = useState<string>('Connecting...');
+  const [status, setStatus] = useState('Connecting...');
   const [partnerId, setPartnerId] = useState<string | null>(null);
-  const [input, setInput] = useState<string>('');
+  const [input, setInput] = useState('');
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<any>(null);
   const peerRef = useRef<Peer | null>(null);
-  const callRef = useRef<MediaConnection | null>(null);
+  const callRef = useRef<any>(null);
 
   useEffect(() => {
     const initializeConnection = async () => {
@@ -33,28 +32,22 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        // Initialize Socket.IO
-        const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket', 'polling'], // WebSocket with fallback
-          withCredentials: true,
-        });
+        const socket = io('https://chat-roulette.onrender.com:3001');
         socketRef.current = socket;
 
-        // Initialize PeerJS
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
-          port: 443, // Use HTTPS
-          path: '/', // Match backend PeerJS path
+          port: 443,
+          path: '/peerjs',
           secure: true,
         });
         peerRef.current = peer;
 
-        peer.on('open', (id: string) => {
-          console.log(`Peer connected with ID: ${id}`);
+        peer.on('open', (id) => {
           socket.emit('peer-id', id);
         });
 
-        socket.on('paired', ({ partnerId }: { partnerId: string }) => {
+        socket.on('paired', ({ partnerId }) => {
           setStatus('Connected to a partner!');
           setPartnerId(partnerId);
 
@@ -62,7 +55,7 @@ const ChatRoulette = () => {
             const call = peerRef.current.call(partnerId, stream);
             callRef.current = call;
 
-            call.on('stream', (remoteStream: MediaStream) => {
+            call.on('stream', (remoteStream) => {
               if (remoteVideoRef.current) {
                 remoteVideoRef.current.srcObject = remoteStream;
               }
@@ -75,10 +68,10 @@ const ChatRoulette = () => {
           setPartnerId(null);
         });
 
-        peer.on('call', (call: MediaConnection) => {
+        peer.on('call', (call) => {
           call.answer(stream);
 
-          call.on('stream', (remoteStream: MediaStream) => {
+          call.on('stream', (remoteStream) => {
             if (remoteVideoRef.current) {
               remoteVideoRef.current.srcObject = remoteStream;
             }
@@ -105,9 +98,9 @@ const ChatRoulette = () => {
 
   const sendMessage = () => {
     if (partnerId && socketRef.current) {
-      const message: Message = { from: 'You', text: input };
+      const message = { text: input };
       socketRef.current.emit('message', message);
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => [...prev, { from: 'You', text: input }]);
       setInput('');
     }
   };
@@ -133,7 +126,8 @@ const ChatRoulette = () => {
                 msg.from === 'You' ? 'chat-message-right' : 'chat-message-left'
               }`}
             >
-              <strong>{msg.from}:</strong> {msg.text}
+              <strong>{msg.from === 'You' ? 'You' : 'Partner'}:</strong>{' '}
+              {msg.text}
             </div>
           ))
         )}
