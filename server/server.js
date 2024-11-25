@@ -19,7 +19,7 @@ const peerServer = ExpressPeerServer(httpServer, {
   allow_discovery: true,
 });
 
-// Enable CORS for PeerJS server
+// CORS headers for PeerJS server
 httpServer.on('request', (req, res) => {
   res.setHeader(
     'Access-Control-Allow-Origin',
@@ -37,14 +37,14 @@ const pairedUsers = new Map();
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
-  // Event when a peer ID is received
+  // Log when a peer-id is received and process the pairing
   socket.on('peer-id', (peerId) => {
     console.log(`Received peer ID from client: ${peerId}`);
     socket.peerId = peerId;
 
-    // Check if there's an available partner in the queue
+    // If there's a user in the waiting queue, pair them
     if (waitingQueue.length > 0) {
-      const partnerSocket = waitingQueue.shift();
+      const partnerSocket = waitingQueue.shift(); // Get the first user from the queue
       pairedUsers.set(socket.id, partnerSocket.id);
       pairedUsers.set(partnerSocket.id, socket.id);
 
@@ -56,22 +56,11 @@ io.on('connection', (socket) => {
         `No partner available, adding ${socket.id} to waiting queue.`,
       );
       waitingQueue.push(socket);
-      socket.emit('waiting');
+      socket.emit('waiting'); // Emit "waiting" for the current user
     }
   });
 
-  // Handle incoming messages
-  socket.on('message', ({ text }) => {
-    const partnerSocketId = pairedUsers.get(socket.id);
-    if (partnerSocketId) {
-      const recipient = io.sockets.sockets.get(partnerSocketId);
-      if (recipient) {
-        recipient.emit('message', { from: 'Partner', text });
-      }
-    }
-  });
-
-  // Handle socket disconnection
+  // Handle socket disconnections
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
     const partnerId = pairedUsers.get(socket.id);
@@ -81,13 +70,13 @@ io.on('connection', (socket) => {
       pairedUsers.delete(partnerId);
       const partnerSocket = io.sockets.sockets.get(partnerId);
       if (partnerSocket) {
-        waitingQueue.push(partnerSocket);
+        waitingQueue.push(partnerSocket); // Move the partner back to the queue
         partnerSocket.emit('waiting');
       }
     }
 
     const index = waitingQueue.indexOf(socket);
-    if (index !== -1) waitingQueue.splice(index, 1);
+    if (index !== -1) waitingQueue.splice(index, 1); // Remove from the waiting queue
   });
 });
 

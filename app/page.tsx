@@ -24,7 +24,6 @@ const ChatRoulette = () => {
     const initializeConnection = async () => {
       try {
         console.log('Initializing connection...');
-        // Get media stream
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
@@ -36,7 +35,6 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        // Connect to the socket.io server
         const socket = io('https://chat-roulette.onrender.com', {
           transports: ['websocket'],
         });
@@ -44,7 +42,6 @@ const ChatRoulette = () => {
 
         console.log('Socket initialized.');
 
-        // Initialize PeerJS connection
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
           port: 443,
