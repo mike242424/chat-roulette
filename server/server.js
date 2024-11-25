@@ -12,7 +12,7 @@ const io = new Server(httpServer, {
 
 const peerServer = ExpressPeerServer(httpServer, {
   path: '/peerjs',
-  allow_discovery: true, // Enables peer discovery
+  allow_discovery: true,
 });
 
 httpServer.on('request', peerServer);
