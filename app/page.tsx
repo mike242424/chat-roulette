@@ -36,21 +36,19 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        const socket = io(`http://${window.location.hostname}`, {
-          transports: ['websocket'], // Ensure WebSocket transport is used
+        const socket = io('https://chat-roulette.onrender.com', {
+          transports: ['websocket'],
         });
-
         socketRef.current = socket;
 
         console.log('Socket initialized.');
 
         const peer = new Peer('', {
-          host: window.location.hostname,
-          port: 80, // Use port 80 for HTTP
-          secure: false, // Explicitly set secure to false
-          path: '/', // Ensure the correct PeerJS path
+          host: 'chat-roulette.onrender.com',
+          port: 443,
+          secure: true,
+          path: '',
         });
-
         peerRef.current = peer;
 
         peer.on('open', (id) => {
