@@ -64,9 +64,9 @@ httpServer.listen(PORT, () => {
   console.log(`Socket.io server running on port ${PORT}`);
 });
 
-const peerServer = PeerServer({
-  port: 3002,
+const peerServer = PeerServer(httpServer, {
   path: '/peerjs',
+  proxied: true,
 });
 
-console.log('PeerJS server running on port 3002');
+console.log('PeerJS server running on port 3001');
