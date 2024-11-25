@@ -33,20 +33,20 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
+        // Initialize Socket.IO
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['polling', 'websocket'], // Allow fallback
+          transports: ['websocket', 'polling'], // WebSocket with fallback
           withCredentials: true,
         });
-
         socketRef.current = socket;
 
+        // Initialize PeerJS
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
           port: 443, // Use HTTPS
-          path: '/peerjs', // Match backend path
-          secure: true, // Use secure connection
+          path: '/peerjs', // Match backend PeerJS path
+          secure: true,
         });
-
         peerRef.current = peer;
 
         peer.on('open', (id: string) => {
