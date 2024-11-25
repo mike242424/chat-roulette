@@ -26,7 +26,6 @@ export default function VideoChat() {
         localStreamRef.current = stream;
       })
       .catch((error) => {
-        console.error('Error accessing media devices:', error);
         alert('Unable to access your camera and microphone.');
       });
 
@@ -44,23 +43,13 @@ export default function VideoChat() {
         });
 
         peer.on('signal', (signal) => {
-          console.log('Outgoing signal:', signal);
           socket.emit('signal', { target: peerId, signal });
         });
 
         peer.on('stream', (stream) => {
-          console.log('Received remote stream:', stream);
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
           }
-        });
-
-        peer.on('error', (err) => {
-          console.error('Peer connection error:', err);
-        });
-
-        peer.on('close', () => {
-          console.log('Peer connection closed');
         });
 
         peerRef.current = peer;
@@ -81,12 +70,10 @@ export default function VideoChat() {
         });
 
         peer.on('signal', (signal) => {
-          console.log('Outgoing signal:', signal);
           socket.emit('signal', { target: sender, signal });
         });
 
         peer.on('stream', (stream) => {
-          console.log('Received remote stream:', stream);
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
           }
@@ -129,7 +116,7 @@ export default function VideoChat() {
 
   return (
     <div className="chat-container">
-      <h1 className="neon-title">Neon Video Chat</h1>
+      <h1 className="neon-title">Chatroulette</h1>
       <div className="video-container">
         <video
           ref={localVideoRef}
