@@ -35,10 +35,11 @@ const ChatRoulette = () => {
         const socket = io('https://chat-roulette.onrender.com:3001');
         socketRef.current = socket;
 
-        const peer = new Peer({
-          host: 'peerjs-server.herokuapp.com',
-          secure: true,
+        const peer = new Peer('', {
+          host: 'chat-roulette.onrender.com',
           port: 443,
+          path: '/peerjs',
+          secure: true,
         });
         peerRef.current = peer;
 
