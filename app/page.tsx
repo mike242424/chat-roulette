@@ -1,110 +1,66 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Peer from 'peerjs';
 
-const ChatRoulette = () => {
-  interface Message {
-    from: string;
-    text: string;
-  }
-
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [status, setStatus] = useState('Connecting...');
-  const [partnerId, setPartnerId] = useState<string | null>(null);
-  const [input, setInput] = useState('');
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+const SimplifiedClient = () => {
   const socketRef = useRef<any>(null);
   const peerRef = useRef<Peer | null>(null);
-  const callRef = useRef<any>(null);
 
   useEffect(() => {
     const initializeConnection = async () => {
       try {
         console.log('Initializing connection...');
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-
-        console.log('Media stream obtained.');
-
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
-
+        // Initialize Socket.IO connection
         const socket = io('https://chat-roulette.onrender.com', {
           transports: ['websocket'],
         });
         socketRef.current = socket;
 
-        console.log('Socket initialized.');
-
-        const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com',
-          port: 443,
-          secure: true,
-          path: '',
-        });
-        peerRef.current = peer;
-
-        peer.on('open', (id) => {
-          console.log('Peer ID obtained:', id);
-          socket.emit('peer-id', id);
-          console.log('peer-id emitted');
-        });
-
         socket.on('connect', () => {
-          console.log('Connected to socket server.');
-          setStatus('Waiting for a partner...');
+          console.log('Socket connected:', socket.id);
         });
 
         socket.on('waiting', () => {
           console.log('Waiting for a partner...');
-          setStatus('Waiting for a partner...');
-          setPartnerId(null);
         });
 
         socket.on('paired', ({ partnerId }) => {
           console.log('Paired with partner:', partnerId);
-          setStatus('Connected to a partner!');
-          setPartnerId(partnerId);
-
-          if (peerRef.current) {
-            const call = peerRef.current.call(partnerId, stream);
-            callRef.current = call;
-
-            call.on('stream', (remoteStream) => {
-              if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = remoteStream;
-              }
-            });
-          }
         });
 
         socket.on('disconnect', (reason) => {
-          console.error('Socket disconnected:', reason);
+          console.log('Socket disconnected:', reason);
         });
 
-        socket.on('message', (message: Message) => {
-          console.log('Message received:', message);
-          setMessages((prev) => [...prev, message]);
+        // Initialize PeerJS connection
+        const peer = new Peer('', {
+          host: 'chat-roulette.onrender.com',
+          port: 443,
+          secure: true,
+          path: '/peerjs',
+        });
+        peerRef.current = peer;
+
+        peer.on('open', (id) => {
+          console.log('Peer connected with ID:', id);
+          // Send peer ID to the socket server
+          socket.emit('peer-id', id);
+          console.log('peer-id emitted');
         });
 
-        peer.on('call', (call) => {
-          console.log('Incoming call:', call);
-          call.answer(stream);
+        peer.on('error', (err) => {
+          console.error('Peer error:', err);
+        });
 
-          call.on('stream', (remoteStream) => {
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-            }
-          });
+        peer.on('disconnected', () => {
+          console.log('Peer disconnected.');
+        });
 
-          callRef.current = call;
+        peer.on('close', () => {
+          console.log('Peer connection closed.');
         });
       } catch (error) {
         console.error('Error initializing connection:', error);
@@ -114,67 +70,18 @@ const ChatRoulette = () => {
     initializeConnection();
 
     return () => {
+      // Clean up connections on unmount
       peerRef.current?.destroy();
       socketRef.current?.disconnect();
     };
   }, []);
 
-  const sendMessage = () => {
-    if (partnerId && socketRef.current) {
-      const message = { text: input };
-      socketRef.current.emit('message', message);
-      setMessages((prev) => [...prev, { from: 'You', text: input }]);
-      setInput('');
-    }
-  };
-
   return (
-    <div className="chat-container">
-      <h1 className="neon-title">Chat Roulette</h1>
-      <p className="status-indicator">{status}</p>
-
-      <div className="video-container">
-        <video ref={localVideoRef} autoPlay muted className="video" />
-        <video ref={remoteVideoRef} autoPlay className="video" />
-      </div>
-
-      <div className="chat-box">
-        {messages.length === 0 ? (
-          <p className="empty-chat">No messages yet...</p>
-        ) : (
-          messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`chat-message ${
-                msg.from === 'You' ? 'chat-message-right' : 'chat-message-left'
-              }`}
-            >
-              <strong>{msg.from === 'You' ? 'You' : 'Partner'}:</strong>
-              {msg.text}
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="chat-input">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          className="neon-input"
-          placeholder="Type your message..."
-        />
-        <button
-          onClick={sendMessage}
-          className="neon-button"
-          disabled={!partnerId || !input.trim()}
-        >
-          Send
-        </button>
-      </div>
+    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
+      <h1>Testing ChatRoulette Connection</h1>
+      <p>Check the console for connection logs.</p>
     </div>
   );
 };
 
-export default ChatRoulette;
+export default SimplifiedClient;
