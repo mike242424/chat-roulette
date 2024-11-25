@@ -5,25 +5,19 @@ import { io } from 'socket.io-client';
 import Peer from 'peerjs';
 
 const ChatRoulette = () => {
-  interface Message {
-    from: string;
-    text: string;
-  }
-
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState([]);
   const [status, setStatus] = useState('Connecting...');
-  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [partnerId, setPartnerId] = useState(null);
   const [input, setInput] = useState('');
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const socketRef = useRef<any>(null);
-  const peerRef = useRef<Peer | null>(null);
-  const callRef = useRef<any>(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const socketRef = useRef(null);
+  const peerRef = useRef(null);
+  const callRef = useRef(null);
 
   useEffect(() => {
     const initializeConnection = async () => {
       try {
-        // Get local video stream
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
@@ -33,19 +27,17 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        // Connect to the deployed Socket.io server
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'], // Force WebSocket
-          withCredentials: true, // Allow cookies if necessary
+          transports: ['websocket'], // Enforce WebSocket
+          withCredentials: true,
         });
         socketRef.current = socket;
 
-        // Connect to the deployed PeerJS server
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
           port: 443,
           path: '/peerjs',
-          secure: true, // Use HTTPS
+          secure: true,
         });
         peerRef.current = peer;
 
@@ -90,7 +82,7 @@ const ChatRoulette = () => {
           callRef.current = call;
         });
 
-        socket.on('message', (message: Message) => {
+        socket.on('message', (message) => {
           setMessages((prev) => [...prev, message]);
         });
       } catch (error) {
@@ -116,50 +108,29 @@ const ChatRoulette = () => {
   };
 
   return (
-    <div className="chat-container">
-      <h1 className="neon-title">Chat Roulette</h1>
-      <p className="status-indicator">{status}</p>
+    <div>
+      <h1>Chat Roulette</h1>
+      <p>{status}</p>
 
-      <div className="video-container">
-        <video ref={localVideoRef} autoPlay muted className="video" />
-        <video ref={remoteVideoRef} autoPlay className="video" />
+      <div>
+        <video ref={localVideoRef} autoPlay muted />
+        <video ref={remoteVideoRef} autoPlay />
       </div>
 
-      <div className="chat-box">
-        {messages.length === 0 ? (
-          <p className="empty-chat">No messages yet...</p>
-        ) : (
-          messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`chat-message ${
-                msg.from === 'You' ? 'chat-message-right' : 'chat-message-left'
-              }`}
-            >
-              <strong>{msg.from === 'You' ? 'You' : 'Partner'}:</strong>{' '}
-              {msg.text}
-            </div>
-          ))
-        )}
+      <div>
+        {messages.map((msg, idx) => (
+          <p key={idx}>{msg.text}</p>
+        ))}
       </div>
 
-      <div className="chat-input">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          className="neon-input"
-          placeholder="Type your message..."
-        />
-        <button
-          onClick={sendMessage}
-          className="neon-button"
-          disabled={!partnerId || !input.trim()}
-        >
-          Send
-        </button>
-      </div>
+      <input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+      />
+      <button onClick={sendMessage} disabled={!partnerId}>
+        Send
+      </button>
     </div>
   );
 };

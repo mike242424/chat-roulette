@@ -3,30 +3,28 @@ import http from 'http';
 import { Server } from 'socket.io';
 import { ExpressPeerServer } from 'peer';
 
-// Initialize Express app
 const app = express();
-
-// Create HTTP server
 const httpServer = http.createServer(app);
 
-// Initialize Socket.io with explicit WebSocket support
+// Configure Socket.io server
 const io = new Server(httpServer, {
   cors: {
     origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'], // Allow required headers
-    credentials: true, // Allow credentials (cookies, etc.)
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
   },
-  transports: ['websocket'], // Force WebSocket transport
+  transports: ['websocket'], // Force WebSocket-only connections
+  allowEIO3: true, // Ensure compatibility with WebSocket clients
 });
 
-// Handle WebSocket connections
+// Handle Socket.io connections
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
   socket.on('message', (data) => {
     console.log('Message received:', data);
-    socket.broadcast.emit('message', data); // Broadcast the message
+    socket.broadcast.emit('message', data);
   });
 
   socket.on('disconnect', () => {
@@ -34,19 +32,19 @@ io.on('connection', (socket) => {
   });
 });
 
-// Initialize PeerJS server
+// Configure PeerJS server
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
   path: '/peerjs',
-  allow_discovery: true, // Enable peer discovery
+  allow_discovery: true,
 });
 
 // Mount PeerJS server to `/peerjs`
 app.use('/peerjs', peerServer);
 
-// Serve a simple test route
+// Test route
 app.get('/', (req, res) => {
-  res.send('WebRTC App Backend Running');
+  res.send('Backend is running');
 });
 
 // Start the server
