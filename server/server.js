@@ -1,92 +1,52 @@
-import { Server } from 'socket.io';
-import http from 'http';
 import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
 import { ExpressPeerServer } from 'peer';
 
+// Initialize Express app
 const app = express();
+
+// Create HTTP server
 const httpServer = http.createServer(app);
 
-// Configure Socket.io server with proper CORS
+// Initialize Socket.io with explicit WebSocket support
 const io = new Server(httpServer, {
   cors: {
     origin: 'https://chat-roulette.vercel.app', // Frontend URL
     methods: ['GET', 'POST'],
-    credentials: true, // Allow credentials
+    allowedHeaders: ['Content-Type'], // Allow required headers
+    credentials: true, // Allow credentials (cookies, etc.)
   },
-  transports: ['websocket'], // Enforce WebSocket usage
+  transports: ['websocket'], // Force WebSocket transport
 });
 
-const waitingQueue = [];
-const pairedUsers = new Map();
-
+// Handle WebSocket connections
 io.on('connection', (socket) => {
-  socket.on('peer-id', (peerId) => {
-    socket.peerId = peerId;
+  console.log('Socket connected:', socket.id);
 
-    if (waitingQueue.length > 0) {
-      const partnerSocket = waitingQueue.shift();
-      pairedUsers.set(socket.id, partnerSocket.id);
-      pairedUsers.set(partnerSocket.id, socket.id);
-
-      socket.emit('paired', { partnerId: partnerSocket.peerId });
-      partnerSocket.emit('paired', { partnerId: socket.peerId });
-    } else {
-      waitingQueue.push(socket);
-      socket.emit('waiting');
-    }
-  });
-
-  socket.on('message', ({ text }) => {
-    const partnerSocketId = pairedUsers.get(socket.id);
-    if (partnerSocketId) {
-      const recipient = io.sockets.sockets.get(partnerSocketId);
-      if (recipient) {
-        recipient.emit('message', { from: 'Partner', text });
-      }
-    }
+  socket.on('message', (data) => {
+    console.log('Message received:', data);
+    socket.broadcast.emit('message', data); // Broadcast the message
   });
 
   socket.on('disconnect', () => {
-    const partnerId = pairedUsers.get(socket.id);
-    pairedUsers.delete(socket.id);
-
-    if (partnerId) {
-      pairedUsers.delete(partnerId);
-      const partnerSocket = io.sockets.sockets.get(partnerId);
-      if (partnerSocket) {
-        waitingQueue.push(partnerSocket);
-        partnerSocket.emit('waiting');
-      }
-    }
-
-    const index = waitingQueue.indexOf(socket);
-    if (index !== -1) waitingQueue.splice(index, 1);
+    console.log('Socket disconnected:', socket.id);
   });
 });
 
-// Configure PeerJS server
+// Initialize PeerJS server
 const peerServer = ExpressPeerServer(httpServer, {
+  debug: true,
   path: '/peerjs',
-  allow_discovery: true, // Optional for discovery
+  allow_discovery: true, // Enable peer discovery
 });
 
-// Mount PeerJS server to the app
+// Mount PeerJS server to `/peerjs`
 app.use('/peerjs', peerServer);
 
-// Add middleware to ensure WebSocket handshake works
-app.use((req, res, next) => {
-  res.setHeader(
-    'Access-Control-Allow-Origin',
-    'https://chat-roulette.vercel.app',
-  );
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  next();
-});
-
-// Test route for confirmation
+// Serve a simple test route
 app.get('/', (req, res) => {
-  res.send('Backend is running!');
+  res.send('WebRTC App Backend Running');
 });
 
 // Start the server

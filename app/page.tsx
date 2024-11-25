@@ -23,6 +23,7 @@ const ChatRoulette = () => {
   useEffect(() => {
     const initializeConnection = async () => {
       try {
+        // Get local video stream
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
@@ -34,24 +35,27 @@ const ChatRoulette = () => {
 
         // Connect to the deployed Socket.io server
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'], // Enforce WebSocket
-          withCredentials: true, // Allow credentials
+          transports: ['websocket'], // Force WebSocket
+          withCredentials: true, // Allow cookies if necessary
         });
         socketRef.current = socket;
 
         // Connect to the deployed PeerJS server
-        const peer = new Peer({
+        const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
           port: 443,
-          secure: true,
+          path: '/peerjs',
+          secure: true, // Use HTTPS
         });
         peerRef.current = peer;
 
         peer.on('open', (id) => {
+          console.log('Peer ID:', id);
           socket.emit('peer-id', id);
         });
 
         socket.on('paired', ({ partnerId }) => {
+          console.log('Paired with:', partnerId);
           setStatus('Connected to a partner!');
           setPartnerId(partnerId);
 
@@ -68,11 +72,13 @@ const ChatRoulette = () => {
         });
 
         socket.on('waiting', () => {
+          console.log('Waiting for a partner...');
           setStatus('Waiting for a partner...');
           setPartnerId(null);
         });
 
         peer.on('call', (call) => {
+          console.log('Incoming call...');
           call.answer(stream);
 
           call.on('stream', (remoteStream) => {
