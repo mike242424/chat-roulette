@@ -1,90 +1,140 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
-import Peer from 'peerjs';
+import React, { useEffect, useRef, useState } from 'react';
+import io from 'socket.io-client';
+import Peer from 'simple-peer';
 
-const SimplifiedClient = () => {
-  const socketRef = useRef<any>(null);
-  const peerRef = useRef<Peer | null>(null);
+const SIGNALING_SERVER_URL = 'https://chat-roulette.onrender.com';
+const socket = io(SIGNALING_SERVER_URL);
+
+export default function VideoChat() {
+  const [peerId, setPeerId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<string[]>([]);
+  const [message, setMessage] = useState<string>('');
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const peerRef = useRef<any>(null);
 
   useEffect(() => {
-    const initializeConnection = async () => {
-      try {
-        console.log('Initializing connection...');
+    socket.on('matched', ({ peerId }) => {
+      setPeerId(peerId);
 
-        // Initialize Socket.IO connection
-        const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'],
-        });
-        socketRef.current = socket;
+      const peer = new Peer({
+        initiator: true,
+        trickle: false,
+        stream: localVideoRef.current?.srcObject as MediaStream,
+      });
 
-        socket.on('connect', () => {
-          console.log('Socket connected:', socket.id);
-        });
+      peer.on('signal', (signal) => {
+        socket.emit('signal', { target: peerId, signal });
+      });
 
-        socket.on('waiting', () => {
-          console.log('Waiting for a partner...');
-        });
+      peer.on('stream', (stream) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = stream;
+        }
+      });
 
-        socket.on('paired', ({ partnerId }) => {
-          console.log('Paired with partner:', partnerId);
-        });
+      peerRef.current = peer;
+    });
 
-        socket.on('disconnect', (reason) => {
-          console.error('Socket disconnected:', reason);
-        });
-
-        // Initialize PeerJS connection
-        const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com',
-          port: 443,
-          secure: true,
-          path: '/peerjs',
-          config: {
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-          },
+    socket.on('signal', ({ sender, signal }) => {
+      if (peerRef.current) {
+        peerRef.current.signal(signal);
+      } else {
+        const peer = new Peer({
+          initiator: false,
+          trickle: false,
+          stream: localVideoRef.current?.srcObject as MediaStream,
         });
 
+        peer.on('signal', (signal) => {
+          socket.emit('signal', { target: sender, signal });
+        });
+
+        peer.on('stream', (stream) => {
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = stream;
+          }
+        });
+
+        peer.signal(signal);
         peerRef.current = peer;
-
-        peer.on('open', (id) => {
-          console.log('Peer connected with ID:', id);
-          socket.emit('peer-id', id);
-          console.log('peer-id emitted');
-        });
-
-        peer.on('error', (err) => {
-          console.error('Peer error:', err);
-        });
-
-        peer.on('disconnected', () => {
-          console.log('Peer disconnected.');
-        });
-
-        peer.on('close', () => {
-          console.log('Peer connection closed.');
-        });
-      } catch (error) {
-        console.error('Error initializing connection:', error);
       }
-    };
+    });
 
-    initializeConnection();
+    socket.on('chatMessage', ({ sender, message }) => {
+      setChatMessages((prev) => [...prev, `${sender}: ${message}`]);
+    });
 
-    return () => {
-      // Clean up connections on unmount
-      peerRef.current?.destroy();
-      socketRef.current?.disconnect();
-    };
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+      });
   }, []);
 
+  const handleSendMessage = () => {
+    if (peerId) {
+      socket.emit('chatMessage', { target: peerId, message });
+      setChatMessages((prev) => [...prev, `You: ${message}`]);
+      setMessage('');
+    }
+  };
+
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial' }}>
-      <h1>Testing ChatRoulette Connection</h1>
-      <p>Check the console for connection logs.</p>
+    <div className="chat-container">
+      <h1 className="neon-title">Neon Video Chat</h1>
+      <div className="video-container">
+        <video
+          ref={localVideoRef}
+          autoPlay
+          muted
+          className="video"
+          title="Your Video"
+        />
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          className="video"
+          title="Peer's Video"
+        />
+      </div>
+      <div className="chat-box">
+        <div className="status-indicator">
+          {peerId ? 'Connected to a peer!' : 'Waiting for a connection...'}
+        </div>
+        {chatMessages.length === 0 ? (
+          <p className="empty-chat">No messages yet. Start the conversation!</p>
+        ) : (
+          chatMessages.map((msg, idx) => (
+            <p
+              key={idx}
+              className={`chat-message ${
+                msg.startsWith('You:')
+                  ? 'chat-message-right'
+                  : 'chat-message-left'
+              }`}
+            >
+              {msg}
+            </p>
+          ))
+        )}
+      </div>
+      <div className="chat-input">
+        <input
+          type="text"
+          className="neon-input"
+          placeholder="Type a message..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        />
+        <button className="neon-button" onClick={handleSendMessage}>
+          Send
+        </button>
+      </div>
     </div>
   );
-};
-
-export default SimplifiedClient;
+}

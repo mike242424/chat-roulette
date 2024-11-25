@@ -1,110 +1,47 @@
-import { Server } from 'socket.io';
+import express from 'express';
 import http from 'http';
-import { ExpressPeerServer } from 'peer';
+import { Server } from 'socket.io';
 
-const httpServer = http.createServer();
-const io = new Server(httpServer, {
-  cors: {
-    origin: 'https://chat-roulette.vercel.app',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-  transports: ['websocket'],
-  pingTimeout: 60000,
-  pingInterval: 25000,
-});
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-const peerServer = ExpressPeerServer(httpServer, {
-  path: '/peerjs',
-  allow_discovery: true,
-});
-
-httpServer.on('request', (req, res) => {
-  res.setHeader(
-    'Access-Control-Allow-Origin',
-    'https://chat-roulette.vercel.app',
-  ); // Allow Vercel domain
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204);
-    res.end();
-  }
-});
-
-// Attach PeerJS server directly to the HTTP server
-httpServer.on('request', (req, res) => {
-  console.log(`Request received: ${req.url}`);
-  console.log('Adding CORS headers...');
-  res.setHeader(
-    'Access-Control-Allow-Origin',
-    'https://chat-roulette.vercel.app',
-  );
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    console.log('OPTIONS request handled.');
-    res.writeHead(204);
-    res.end();
-  }
-});
-
-// Add logs to ensure PeerJS initialization
-peerServer.on('connection', (client) => {
-  console.log(`PeerJS connection established: ${client.id}`);
-});
-
-peerServer.on('disconnect', (client) => {
-  console.log(`PeerJS client disconnected: ${client.id}`);
-});
-
-const waitingQueue = [];
-const pairedUsers = new Map();
+let waitingUsers = [];
 
 io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
+  console.log('User connected:', socket.id);
 
-  socket.on('peer-id', (peerId) => {
-    console.log(`Received peer ID from client: ${peerId}`);
-    socket.peerId = peerId;
+  waitingUsers.push(socket.id);
 
-    if (waitingQueue.length > 0) {
-      const partnerSocket = waitingQueue.shift();
-      pairedUsers.set(socket.id, partnerSocket.id);
-      pairedUsers.set(partnerSocket.id, socket.id);
+  if (waitingUsers.length >= 2) {
+    const user1 = waitingUsers.shift();
+    const user2 = waitingUsers.shift();
 
-      console.log(`Pairing ${socket.id} with ${partnerSocket.id}`);
-      socket.emit('paired', { partnerId: partnerSocket.peerId });
-      partnerSocket.emit('paired', { partnerId: socket.peerId });
-    } else {
-      console.log(
-        `No partner available, adding ${socket.id} to waiting queue.`,
-      );
-      waitingQueue.push(socket);
-      socket.emit('waiting');
-    }
+    io.to(user1).emit('matched', { peerId: user2 });
+    io.to(user2).emit('matched', { peerId: user1 });
+  }
+
+  socket.on('signal', (data) => {
+    io.to(data.target).emit('signal', {
+      sender: socket.id,
+      signal: data.signal,
+    });
+  });
+
+  socket.on('chatMessage', (data) => {
+    io.to(data.target).emit('chatMessage', {
+      sender: socket.id,
+      message: data.message,
+    });
   });
 
   socket.on('disconnect', () => {
-    console.log(`Socket disconnected: ${socket.id}`);
-    const partnerId = pairedUsers.get(socket.id);
-
-    pairedUsers.delete(socket.id);
-    if (partnerId) {
-      pairedUsers.delete(partnerId);
-      const partnerSocket = io.sockets.sockets.get(partnerId);
-      if (partnerSocket) {
-        waitingQueue.push(partnerSocket);
-        partnerSocket.emit('waiting');
-      }
-    }
-
-    const index = waitingQueue.indexOf(socket);
-    if (index !== -1) waitingQueue.splice(index, 1);
+    console.log('User disconnected:', socket.id);
+    waitingUsers = waitingUsers.filter((id) => id !== socket.id);
   });
 });
 
-const PORT = process.env.PORT || 443;
-httpServer.listen(PORT, () => {
-  console.log(`Socket.io server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () =>
+  console.log(`Signaling server running on port ${PORT}`),
+);
