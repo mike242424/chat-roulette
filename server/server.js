@@ -41,8 +41,15 @@ io.on('connection', (socket) => {
     console.log(`Received peer ID from client: ${peerId}`);
     socket.peerId = peerId;
 
+    // Check if the socket is already paired or in the queue
+    if (pairedUsers.has(socket.id) || waitingQueue.includes(socket)) {
+      return;
+    }
+
     if (waitingQueue.length > 0) {
       const partnerSocket = waitingQueue.shift();
+
+      // Pair the users
       pairedUsers.set(socket.id, partnerSocket.id);
       pairedUsers.set(partnerSocket.id, socket.id);
 
@@ -63,6 +70,7 @@ io.on('connection', (socket) => {
     console.log(`Socket disconnected: ${socket.id}`);
     const partnerId = pairedUsers.get(socket.id);
 
+    // Remove from pairedUsers
     pairedUsers.delete(socket.id);
     if (partnerId) {
       pairedUsers.delete(partnerId);
@@ -73,10 +81,20 @@ io.on('connection', (socket) => {
       }
     }
 
-    const index = waitingQueue.indexOf(socket);
-    if (index !== -1) waitingQueue.splice(index, 1); // Remove from the waiting queue
+    // Clean waitingQueue
+    const index = waitingQueue.findIndex((s) => s.id === socket.id);
+    if (index !== -1) waitingQueue.splice(index, 1); // Remove socket from the waiting queue
   });
 });
+
+// Log current state for debugging
+setInterval(() => {
+  console.log(
+    'Waiting queue:',
+    waitingQueue.map((s) => s.id),
+  );
+  console.log('Paired users:', Array.from(pairedUsers.entries()));
+}, 10000);
 
 const PORT = process.env.PORT || 443;
 httpServer.listen(PORT, () => {
