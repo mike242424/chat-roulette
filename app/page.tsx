@@ -33,7 +33,7 @@ const ChatRoulette = () => {
         }
 
         const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'], // Force WebSocket transport
+          transports: ['websocket'],
         });
         socketRef.current = socket;
 
@@ -41,12 +41,16 @@ const ChatRoulette = () => {
           host: 'chat-roulette.onrender.com',
           port: 443,
           secure: true,
-          path: '', // Corrected path to avoid double '/peerjs/peerjs'
+          path: '',
         });
         peerRef.current = peer;
 
         peer.on('open', (id) => {
           socket.emit('peer-id', id);
+        });
+
+        socket.on('disconnect', (reason) => {
+          console.error('Disconnected:', reason);
         });
 
         socket.on('paired', ({ partnerId }) => {
