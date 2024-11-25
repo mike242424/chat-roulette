@@ -53,7 +53,7 @@ const ChatRoulette = () => {
 
         peer.on('open', (id) => {
           console.log('Peer ID obtained:', id);
-          socket.emit('peer-id', id);
+          socket.emit('peer-id', id); // Emitting the peer ID to the server
           console.log('peer-id emitted');
         });
 

@@ -19,7 +19,6 @@ const peerServer = ExpressPeerServer(httpServer, {
   allow_discovery: true,
 });
 
-// CORS headers for PeerJS server
 httpServer.on('request', (req, res) => {
   res.setHeader(
     'Access-Control-Allow-Origin',
@@ -38,7 +37,6 @@ io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
   // Log when a peer-id is received and process the pairing
-  // Log when peer-id is received and user is added to the queue
   socket.on('peer-id', (peerId) => {
     console.log(`Received peer ID from client: ${peerId}`);
     socket.peerId = peerId;
