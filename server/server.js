@@ -1,8 +1,8 @@
-import express, { Request, Response } from 'express';
-import http from 'http';
-import path from 'path';
-import { Server } from 'socket.io';
-import { ExpressPeerServer } from 'peer';
+const express = require('express');
+const http = require('http');
+const path = require('path');
+const { Server } = require('socket.io');
+const { ExpressPeerServer } = require('peer');
 
 // Initialize Express and HTTP server
 const app = express();
@@ -11,13 +11,13 @@ const httpServer = http.createServer(app);
 // Configure Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app', // Frontend URL
+    origin: 'https://chat-roulette.vercel.app',
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'], // Allow necessary headers
-    credentials: true, // Allow credentials (e.g., cookies)
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
   },
-  transports: ['websocket'], // Use WebSocket transport only
-  allowEIO3: true, // Enable compatibility with older Socket.io clients
+  transports: ['websocket'],
+  allowEIO3: true,
 });
 
 // WebSocket connection handling
@@ -38,16 +38,16 @@ io.on('connection', (socket) => {
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
   path: '/peerjs',
-  allow_discovery: true, // Enable peer discovery
+  allow_discovery: true,
 });
 
 // Mount PeerJS server
 app.use('/peerjs', peerServer);
 
-// Serve static files (e.g., styles, frontend assets)
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Test route for basic verification
+// Test route
 app.get('/', (req, res) => {
   res.send('WebRTC Backend Running!');
 });
