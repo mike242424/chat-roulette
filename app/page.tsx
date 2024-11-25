@@ -23,37 +23,54 @@ const ChatRoulette = () => {
   useEffect(() => {
     const initializeConnection = async () => {
       try {
+        console.log('Initializing connection...');
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
         });
 
+        console.log('Media stream obtained.');
+
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
 
-        const socket = io('https://chat-roulette.onrender.com', {
-          transports: ['websocket'],
+        const socket = io(`http://${window.location.hostname}`, {
+          transports: ['websocket'], // Ensure WebSocket transport is used
         });
+
         socketRef.current = socket;
 
+        console.log('Socket initialized.');
+
         const peer = new Peer('', {
-          host: 'chat-roulette.onrender.com',
-          port: 443,
-          secure: true,
-          path: '',
+          host: window.location.hostname,
+          port: 80, // Use port 80 for HTTP
+          secure: false, // Explicitly set secure to false
+          path: '/', // Ensure the correct PeerJS path
         });
+
         peerRef.current = peer;
 
         peer.on('open', (id) => {
+          console.log('Peer ID obtained:', id);
           socket.emit('peer-id', id);
         });
 
-        socket.on('disconnect', (reason) => {
-          console.error('Disconnected:', reason);
+        socket.on('connect', () => {
+          console.log('Connected to socket server.');
+          setStatus('Waiting for a partner...');
+        });
+
+        socket.on('waiting', () => {
+          console.log('Waiting for a partner...');
+          setStatus('Waiting for a partner...');
+          setPartnerId(null);
         });
 
         socket.on('paired', ({ partnerId }) => {
+          console.log('Paired with partner:', partnerId);
           setStatus('Connected to a partner!');
           setPartnerId(partnerId);
 
@@ -69,12 +86,17 @@ const ChatRoulette = () => {
           }
         });
 
-        socket.on('waiting', () => {
-          setStatus('Waiting for a partner...');
-          setPartnerId(null);
+        socket.on('disconnect', (reason) => {
+          console.error('Socket disconnected:', reason);
+        });
+
+        socket.on('message', (message) => {
+          console.log('Message received:', message);
+          setMessages((prev) => [...prev, message]);
         });
 
         peer.on('call', (call) => {
+          console.log('Incoming call:', call);
           call.answer(stream);
 
           call.on('stream', (remoteStream) => {
@@ -85,12 +107,8 @@ const ChatRoulette = () => {
 
           callRef.current = call;
         });
-
-        socket.on('message', (message: Message) => {
-          setMessages((prev) => [...prev, message]);
-        });
       } catch (error) {
-        console.error('Error initializing connections:', error);
+        console.error('Error initializing connection:', error);
       }
     };
 

@@ -36,6 +36,7 @@ io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
   socket.on('peer-id', (peerId) => {
+    console.log(`Peer ID received from client: ${peerId}`);
     socket.peerId = peerId;
 
     if (waitingQueue.length > 0) {
@@ -43,28 +44,24 @@ io.on('connection', (socket) => {
       pairedUsers.set(socket.id, partnerSocket.id);
       pairedUsers.set(partnerSocket.id, socket.id);
 
+      console.log(`Pairing ${socket.id} with ${partnerSocket.id}`);
+
       socket.emit('paired', { partnerId: partnerSocket.peerId });
       partnerSocket.emit('paired', { partnerId: socket.peerId });
     } else {
+      console.log(
+        `No partner available, adding ${socket.id} to waiting queue.`,
+      );
       waitingQueue.push(socket);
       socket.emit('waiting');
     }
   });
 
-  socket.on('message', ({ text }) => {
-    const partnerSocketId = pairedUsers.get(socket.id);
-    if (partnerSocketId) {
-      const recipient = io.sockets.sockets.get(partnerSocketId);
-      if (recipient) {
-        recipient.emit('message', { from: 'Partner', text });
-      }
-    }
-  });
-
   socket.on('disconnect', () => {
+    console.log(`Socket disconnected: ${socket.id}`);
     const partnerId = pairedUsers.get(socket.id);
-    pairedUsers.delete(socket.id);
 
+    pairedUsers.delete(socket.id);
     if (partnerId) {
       pairedUsers.delete(partnerId);
       const partnerSocket = io.sockets.sockets.get(partnerId);
@@ -76,12 +73,10 @@ io.on('connection', (socket) => {
 
     const index = waitingQueue.indexOf(socket);
     if (index !== -1) waitingQueue.splice(index, 1);
-
-    console.log(`Socket disconnected: ${socket.id}`);
   });
 });
 
-const PORT = process.env.PORT || 443;
+const PORT = process.env.PORT;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
