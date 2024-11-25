@@ -53,8 +53,6 @@ export default function VideoChat() {
         });
 
         peerRef.current = peer;
-      } else {
-        console.error('Local stream is not ready yet.');
       }
     });
 
