@@ -42,17 +42,18 @@ const ChatRoulette = () => {
         socketRef.current = socket;
 
         console.log('Socket initialized.');
+
         const peer = new Peer('', {
           host: 'chat-roulette.onrender.com',
           port: 443,
           secure: true,
+          path: '',
         });
-
         peerRef.current = peer;
 
         peer.on('open', (id) => {
           console.log('Peer ID obtained:', id);
-          socket.emit('peer-id', id); // Emitting the peer ID to the server
+          socket.emit('peer-id', id);
           console.log('peer-id emitted');
         });
 

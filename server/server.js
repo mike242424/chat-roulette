@@ -29,27 +29,18 @@ httpServer.on('request', (req, res) => {
 });
 httpServer.on('request', peerServer);
 
-// Store waiting users and paired users
 const waitingQueue = [];
 const pairedUsers = new Map();
 
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
-  // Log when a peer-id is received and process the pairing
   socket.on('peer-id', (peerId) => {
     console.log(`Received peer ID from client: ${peerId}`);
     socket.peerId = peerId;
 
-    // Check if the socket is already paired or in the queue
-    if (pairedUsers.has(socket.id) || waitingQueue.includes(socket)) {
-      return;
-    }
-
     if (waitingQueue.length > 0) {
       const partnerSocket = waitingQueue.shift();
-
-      // Pair the users
       pairedUsers.set(socket.id, partnerSocket.id);
       pairedUsers.set(partnerSocket.id, socket.id);
 
@@ -65,36 +56,24 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle socket disconnections
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
     const partnerId = pairedUsers.get(socket.id);
 
-    // Remove from pairedUsers
     pairedUsers.delete(socket.id);
     if (partnerId) {
       pairedUsers.delete(partnerId);
       const partnerSocket = io.sockets.sockets.get(partnerId);
       if (partnerSocket) {
-        waitingQueue.push(partnerSocket); // Move the partner back to the queue
+        waitingQueue.push(partnerSocket);
         partnerSocket.emit('waiting');
       }
     }
 
-    // Clean waitingQueue
-    const index = waitingQueue.findIndex((s) => s.id === socket.id);
-    if (index !== -1) waitingQueue.splice(index, 1); // Remove socket from the waiting queue
+    const index = waitingQueue.indexOf(socket);
+    if (index !== -1) waitingQueue.splice(index, 1);
   });
 });
-
-// Log current state for debugging
-setInterval(() => {
-  console.log(
-    'Waiting queue:',
-    waitingQueue.map((s) => s.id),
-  );
-  console.log('Paired users:', Array.from(pairedUsers.entries()));
-}, 10000);
 
 const PORT = process.env.PORT || 443;
 httpServer.listen(PORT, () => {
