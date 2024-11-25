@@ -1,7 +1,6 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-
 import cors from 'cors';
 
 const app = express();
@@ -40,6 +39,7 @@ io.on('connection', (socket) => {
   }
 
   socket.on('signal', (data) => {
+    console.log('Signal received:', data);
     io.to(data.target).emit('signal', {
       sender: socket.id,
       signal: data.signal,
@@ -56,6 +56,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     waitingUsers = waitingUsers.filter((id) => id !== socket.id);
+    io.emit('peerDisconnected', { peerId: socket.id });
   });
 });
 

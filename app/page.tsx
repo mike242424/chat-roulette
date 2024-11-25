@@ -14,52 +14,88 @@ export default function VideoChat() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerRef = useRef<any>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+        localStreamRef.current = stream;
+      })
+      .catch((error) => {
+        console.error('Error accessing media devices:', error);
+        alert('Unable to access your camera and microphone.');
+      });
+
     socket.on('matched', ({ peerId }) => {
       setPeerId(peerId);
 
-      const peer = new Peer({
-        initiator: true,
-        trickle: false,
-        stream: localVideoRef.current?.srcObject as MediaStream,
-      });
-
-      peer.on('signal', (signal) => {
-        socket.emit('signal', { target: peerId, signal });
-      });
-
-      peer.on('stream', (stream) => {
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = stream;
-        }
-      });
-
-      peerRef.current = peer;
-    });
-
-    socket.on('signal', ({ sender, signal }) => {
-      if (peerRef.current) {
-        peerRef.current.signal(signal);
-      } else {
+      if (localStreamRef.current) {
         const peer = new Peer({
-          initiator: false,
+          initiator: true,
           trickle: false,
-          stream: localVideoRef.current?.srcObject as MediaStream,
+          stream: localStreamRef.current,
+          config: {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+          },
         });
 
         peer.on('signal', (signal) => {
-          socket.emit('signal', { target: sender, signal });
+          console.log('Outgoing signal:', signal);
+          socket.emit('signal', { target: peerId, signal });
         });
 
         peer.on('stream', (stream) => {
+          console.log('Received remote stream:', stream);
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
           }
         });
 
-        peer.signal(signal);
+        peer.on('error', (err) => {
+          console.error('Peer connection error:', err);
+        });
+
+        peer.on('close', () => {
+          console.log('Peer connection closed');
+        });
+
         peerRef.current = peer;
+      } else {
+        console.error('Local stream is not ready yet.');
+      }
+    });
+
+    socket.on('signal', ({ sender, signal }) => {
+      if (!peerRef.current && localStreamRef.current) {
+        const peer = new Peer({
+          initiator: false,
+          trickle: false,
+          stream: localStreamRef.current,
+          config: {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+          },
+        });
+
+        peer.on('signal', (signal) => {
+          console.log('Outgoing signal:', signal);
+          socket.emit('signal', { target: sender, signal });
+        });
+
+        peer.on('stream', (stream) => {
+          console.log('Received remote stream:', stream);
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = stream;
+          }
+        });
+
+        peerRef.current = peer;
+        peer.signal(signal);
+      } else if (peerRef.current) {
+        peerRef.current.signal(signal);
       }
     });
 
@@ -67,13 +103,20 @@ export default function VideoChat() {
       setChatMessages((prev) => [...prev, `${sender}: ${message}`]);
     });
 
-    navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
-      .then((stream) => {
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
+    socket.on('peerDisconnected', ({ peerId: disconnectedPeerId }) => {
+      if (disconnectedPeerId === peerId) {
+        alert('Your peer has disconnected.');
+        if (peerRef.current) {
+          peerRef.current.destroy();
         }
-      });
+        setPeerId(null);
+      }
+    });
+
+    return () => {
+      if (peerRef.current) peerRef.current.destroy();
+      socket.disconnect();
+    };
   }, []);
 
   const handleSendMessage = () => {
