@@ -40,7 +40,10 @@ const SimplifiedClient = () => {
           host: 'chat-roulette.onrender.com',
           port: 443,
           secure: true,
-          path: '/peerjs', // Ensure this matches the server-side configuration
+          path: '/peerjs',
+          config: {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+          },
         });
 
         peerRef.current = peer;

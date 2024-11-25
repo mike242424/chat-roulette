@@ -19,8 +19,35 @@ const peerServer = ExpressPeerServer(httpServer, {
   allow_discovery: true,
 });
 
+httpServer.on('request', (req, res) => {
+  res.setHeader(
+    'Access-Control-Allow-Origin',
+    'https://chat-roulette.vercel.app',
+  ); // Allow Vercel domain
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+  }
+});
+
 // Attach PeerJS server directly to the HTTP server
-httpServer.on('request', peerServer);
+httpServer.on('request', (req, res) => {
+  console.log(`Request received: ${req.url}`);
+  console.log('Adding CORS headers...');
+  res.setHeader(
+    'Access-Control-Allow-Origin',
+    'https://chat-roulette.vercel.app',
+  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    console.log('OPTIONS request handled.');
+    res.writeHead(204);
+    res.end();
+  }
+});
 
 // Add logs to ensure PeerJS initialization
 peerServer.on('connection', (client) => {
