@@ -1,8 +1,10 @@
 import { Server } from 'socket.io';
 import http from 'http';
+import express from 'express';
 import { ExpressPeerServer } from 'peer';
 
-const httpServer = http.createServer();
+const app = express();
+const httpServer = http.createServer(app);
 
 // Configure Socket.io server with proper CORS
 const io = new Server(httpServer, {
@@ -69,17 +71,13 @@ const peerServer = ExpressPeerServer(httpServer, {
   allow_discovery: true, // Optional for discovery
 });
 
-// Add CORS middleware to PeerJS
-peerServer.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'https://chat-roulette.vercel.app');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
-});
+// Mount PeerJS server to the app
+app.use('/peerjs', peerServer);
 
-// Attach PeerJS server to the HTTP server
-httpServer.on('request', peerServer);
+// Test route for confirmation
+app.get('/', (req, res) => {
+  res.send('Backend is running!');
+});
 
 // Start the server
 const PORT = process.env.PORT || 3001;
