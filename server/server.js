@@ -1,32 +1,22 @@
 import express from 'express';
 import http from 'http';
-import path from 'path';
 import { Server } from 'socket.io';
 import { ExpressPeerServer } from 'peer';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
-// Resolve __dirname and __filename in ESM
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Initialize Express and HTTP server
 const app = express();
 const httpServer = http.createServer(app);
 
-// Configure Socket.io
+// Configure Socket.IO
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://chat-roulette.vercel.app', // Frontend URL
+    origin: 'https://chat-roulette.vercel.app',
     methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'], // Allow necessary headers
-    credentials: true, // Allow credentials (e.g., cookies)
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
   },
-  transports: ['websocket'], // Use WebSocket transport only
-  allowEIO3: true, // Enable compatibility with older Socket.io clients
+  transports: ['websocket'], // Enforce WebSocket-only transport
 });
 
-// WebSocket connection handling
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
@@ -40,25 +30,28 @@ io.on('connection', (socket) => {
   });
 });
 
-// Configure PeerJS
+// Configure PeerJS with Root Path `/`
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
-  path: '/peerjs',
-  allow_discovery: true, // Enable peer discovery
+  path: '/', // Use root path
 });
 
-// Mount PeerJS server
-app.use('/peerjs', peerServer);
+// Add custom headers to PeerJS for CORS
+peerServer.on('headers', (headers) => {
+  headers['Access-Control-Allow-Origin'] = 'https://chat-roulette.vercel.app';
+  headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+  headers['Access-Control-Allow-Headers'] = 'Content-Type';
+  headers['Access-Control-Allow-Credentials'] = 'true';
+});
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Mount PeerJS on root
+app.use('/', peerServer);
 
 // Test route
 app.get('/', (req, res) => {
   res.send('WebRTC Backend Running!');
 });
 
-// Start the server
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
