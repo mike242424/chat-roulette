@@ -20,7 +20,6 @@ const ChatRoulette = () => {
       try {
         console.log('Initializing connection...');
 
-        // Connect to the socket.io server
         const socket = io('https://chat-roulette.onrender.com', {
           transports: ['websocket'],
         });
@@ -54,8 +53,8 @@ const ChatRoulette = () => {
           setMessages((prev) => [...prev, message]);
         });
 
-        // Emit the peer-id (even though we are not using PeerJS anymore)
-        socket.emit('peer-id', ''); // You can send an empty string since we're not using PeerJS for video.
+        // Send peer-id (if you still want to handle pairing logic in socket)
+        socket.emit('peer-id', ''); // You can still send an empty peer-id if you don’t need video functionality
       } catch (error) {
         console.error('Error initializing connection:', error);
       }
@@ -93,7 +92,7 @@ const ChatRoulette = () => {
                 msg.from === 'You' ? 'chat-message-right' : 'chat-message-left'
               }`}
             >
-              <strong>{msg.from === 'You' ? 'You' : 'Partner'}:</strong>
+              <strong>{msg.from === 'You' ? 'You' : 'Partner'}:</strong>{' '}
               {msg.text}
             </div>
           ))

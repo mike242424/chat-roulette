@@ -1,6 +1,5 @@
 import { Server } from 'socket.io';
 import http from 'http';
-import { ExpressPeerServer } from 'peer';
 
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
@@ -13,21 +12,6 @@ const io = new Server(httpServer, {
   pingTimeout: 60000,
   pingInterval: 25000,
 });
-
-const peerServer = ExpressPeerServer(httpServer, {
-  path: '/peerjs',
-  allow_discovery: true,
-});
-
-httpServer.on('request', (req, res) => {
-  res.setHeader(
-    'Access-Control-Allow-Origin',
-    'https://chat-roulette.vercel.app',
-  );
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-});
-httpServer.on('request', peerServer);
 
 // Store waiting users and paired users
 const waitingQueue = [];
@@ -75,6 +59,17 @@ io.on('connection', (socket) => {
 
     const index = waitingQueue.indexOf(socket);
     if (index !== -1) waitingQueue.splice(index, 1); // Remove from the waiting queue
+  });
+
+  // Handle incoming chat messages
+  socket.on('message', ({ text }) => {
+    const partnerSocketId = pairedUsers.get(socket.id);
+    if (partnerSocketId) {
+      const recipient = io.sockets.sockets.get(partnerSocketId);
+      if (recipient) {
+        recipient.emit('message', { from: 'Partner', text });
+      }
+    }
   });
 });
 
