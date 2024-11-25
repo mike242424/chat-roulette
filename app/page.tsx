@@ -24,6 +24,7 @@ const ChatRoulette = () => {
     const initializeConnection = async () => {
       try {
         console.log('Initializing connection...');
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
@@ -53,6 +54,7 @@ const ChatRoulette = () => {
         peer.on('open', (id) => {
           console.log('Peer ID obtained:', id);
           socket.emit('peer-id', id);
+          console.log('peer-id emitted');
         });
 
         socket.on('connect', () => {

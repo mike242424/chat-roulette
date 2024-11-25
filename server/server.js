@@ -38,13 +38,13 @@ io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
   // Log when a peer-id is received and process the pairing
+  // Log when peer-id is received and user is added to the queue
   socket.on('peer-id', (peerId) => {
     console.log(`Received peer ID from client: ${peerId}`);
     socket.peerId = peerId;
 
-    // If there's a user in the waiting queue, pair them
     if (waitingQueue.length > 0) {
-      const partnerSocket = waitingQueue.shift(); // Get the first user from the queue
+      const partnerSocket = waitingQueue.shift();
       pairedUsers.set(socket.id, partnerSocket.id);
       pairedUsers.set(partnerSocket.id, socket.id);
 
@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
         `No partner available, adding ${socket.id} to waiting queue.`,
       );
       waitingQueue.push(socket);
-      socket.emit('waiting'); // Emit "waiting" for the current user
+      socket.emit('waiting');
     }
   });
 
