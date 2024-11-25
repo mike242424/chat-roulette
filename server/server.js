@@ -14,9 +14,10 @@ const io = new Server(httpServer, {
     allowedHeaders: ['Content-Type'],
     credentials: true,
   },
-  transports: ['polling', 'websocket'], // Allow fallback to polling
+  transports: ['polling', 'websocket'], // Allow fallback
 });
 
+// Handle Socket.IO connections
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
@@ -33,18 +34,15 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
   });
-
-  socket.on('error', (error) => {
-    console.error(`WebSocket error: ${error}`);
-  });
 });
 
 // Configure PeerJS
 const peerServer = ExpressPeerServer(httpServer, {
   debug: true,
-  path: '/peerjs', // Keep it consistent
+  path: '/peerjs', // Correct path for PeerJS
 });
 
+// Middleware for CORS in PeerJS
 peerServer.on('headers', (headers) => {
   headers['Access-Control-Allow-Origin'] = 'https://chat-roulette.vercel.app';
   headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
@@ -52,12 +50,14 @@ peerServer.on('headers', (headers) => {
   headers['Access-Control-Allow-Credentials'] = 'true';
 });
 
-app.use('/peerjs', peerServer);
+app.use('/peerjs', peerServer); // Mount PeerJS on `/peerjs`
 
+// Serve root route for testing
 app.get('/', (req, res) => {
   res.send('WebRTC Backend Running!');
 });
 
+// Start the server
 const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
