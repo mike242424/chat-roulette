@@ -32,7 +32,7 @@ const ChatRoulette = () => {
           localVideoRef.current.srcObject = stream;
         }
 
-        const socket = io('https://chat-roulette.onrender.com:3001');
+        const socket = io('https://chat-roulette.onrender.com');
         socketRef.current = socket;
 
         const peer = new Peer('', {
@@ -41,6 +41,7 @@ const ChatRoulette = () => {
           path: '/peerjs',
           secure: true,
         });
+
         peerRef.current = peer;
 
         peer.on('open', (id) => {

@@ -1,14 +1,21 @@
 import { Server } from 'socket.io';
 import http from 'http';
-import { PeerServer } from 'peer';
+import { ExpressPeerServer } from 'peer';
 
 const httpServer = http.createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: 'chat-roulette.vercel.app',
+    origin: 'https://chat-roulette.vercel.app',
     methods: ['GET', 'POST'],
   },
 });
+
+const peerServer = ExpressPeerServer(httpServer, {
+  path: '/peerjs',
+  allow_discovery: true, // Enables peer discovery
+});
+
+httpServer.on('request', peerServer);
 
 const waitingQueue = [];
 const pairedUsers = new Map();
@@ -58,13 +65,7 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(3001, () => {
-  console.log('Socket.io server running on port 3001');
+const PORT = process.env.PORT || 443;
+httpServer.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-const peerServer = PeerServer({
-  port: 3002,
-  path: '/peerjs',
-});
-
-console.log('PeerJS server running on port 3002');
